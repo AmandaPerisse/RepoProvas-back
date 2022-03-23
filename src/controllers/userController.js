@@ -9,9 +9,8 @@ export async function postUser(req, res) {
     if (isThereUser.rowCount !== 0) {
       return res.sendStatus(409);
     }
-    console.log("#1")
-    const passwordHash = bcrypt.hashSync(user.password, 10);
 
+    const passwordHash = bcrypt.hashSync(user.password, 10);
     await connection.query(`
       INSERT INTO 
         users (username, email, password, pictureUrl) 

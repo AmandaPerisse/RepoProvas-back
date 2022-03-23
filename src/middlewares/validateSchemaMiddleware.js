@@ -4,7 +4,6 @@ export function validateSchemaMiddleware(schema, resStatus) {
     if (validation.error) {
       return res.sendStatus(resStatus);
     }
-
     next();
   }
 }
