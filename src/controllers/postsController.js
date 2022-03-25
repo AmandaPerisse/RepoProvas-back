@@ -1,4 +1,5 @@
 import { connection } from '../database.js';
+import urlMetadata from 'url-metadata';
 
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
@@ -79,23 +80,58 @@ export async function postOnFeed(req, res) {
 
 export async function getTimeline(req, res) {
     
-    
+    const timeline = [];
+    const urlsDescriptions = [];
+
     try {
         /* mudar picture url */
         const user = await connection.query(`
-            SELECT u.username, u."pictureurl" FROM posts p
+            SELECT u.id, u.username, u."pictureurl" FROM posts p
                 JOIN users u ON p."userId"=u.id
                 ORDER BY p.id DESC
                 LIMIT 20
         `);
 
         const postInfo = await connection.query(`
-            SELECT p.description, p."likesAmount" FROM posts p
+            SELECT p.id AS "postId", p.url AS "rawUrl", p.description, p."likesAmount" FROM posts p
                 ORDER BY p.id DESC
                 LIMIT 20
         `);
 
-        res.send(postInfo.rows);
+        for (let i = 0; i < user.rowCount; i++) {
+            await urlMetadata(postInfo.rows[i].rawUrl)
+                .then(
+                function (metadata) { // success handler
+                    urlsDescriptions.push({
+                        "url":
+                            {
+                                "link": metadata.url,
+                                "title": metadata.title,
+                                "descirption": metadata.description,
+                                "image": metadata.image
+                            }
+                    });
+                },
+                function (error) { // failure handler
+                    console.log(error)
+                    res.send('url-metadata error').status(503);
+                })  
+        }
+
+        for (let i = 0; i < user.rowCount; i++) {
+            timeline.push(
+                {
+                    ...postInfo.rows[i],
+                    "likedByUser": false,
+                    "likedBy": "Em construção",
+                    "user": user.rows[i],
+                    ...urlsDescriptions[i]
+                }
+            )
+        }
+
+        res.send(timeline);
+
     } catch (error) {
         console.error(error);
         res.sendStatus(500);
