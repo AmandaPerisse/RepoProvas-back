@@ -84,21 +84,23 @@ export async function getTimeline(req, res) {
     const urlsDescriptions = [];
 
     try {
-        /* mudar picture url */
-        const user = await connection.query(`
-            SELECT u.id, u.username, u."pictureUrl" FROM posts p
-                JOIN users u ON p."userId"=u.id
-                ORDER BY p.id DESC
-                LIMIT 20
-        `);
-
+        /* FALTA QUERY PARA likedByUser e likedBy */
         const postInfo = await connection.query(`
-            SELECT p.id AS "postId", p.url AS "rawUrl", p.description, p."likesAmount" FROM posts p
-                ORDER BY p.id DESC
-                LIMIT 20
+            SELECT
+                p.id AS "postId",
+                p.url AS "rawUrl",
+                p.description,
+                p."likesAmount",
+                u.id AS "userId",
+                u.username,
+                u."pictureUrl" AS "userPictureUrl"
+                    FROM posts p
+                    JOIN users u ON p."userId"=u.id
+                        ORDER BY p.id DESC
+                        LIMIT 20
         `);
 
-        for (let i = 0; i < user.rowCount; i++) {
+        for (let i = 0; i < postInfo.rowCount; i++) {
             await urlMetadata(postInfo.rows[i].rawUrl)
                 .then(
                 function (metadata) { // success handler
@@ -121,15 +123,28 @@ export async function getTimeline(req, res) {
         for (let i = 0; i < user.rowCount; i++) {
             timeline.push(
                 {
-                    ...postInfo.rows[i],
+                    id: postInfo.rows[i].postId,
+                    rawUrl: postInfo.rows[i].rawUrl,
+                    description: postInfo.rows[i].description,
+                    likesAmount: postInfo.rows[i].likesAmount,
                     "likedByUser": false,
                     "likedBy": "Em construção",
-                    "user": user.rows[i],
+                    "user": {
+                        id: postInfo.rows[i].userId,
+                        name: postInfo.rows[i].username,
+                        pictureUrl: postInfo.rows[i].userPictureUrl
+                    },
                     ...urlsDescriptions[i]
                 }
             )
         }
-
+/*
+        ...postInfo.rows[i],
+        "likedByUser": false,
+        "likedBy": "Em construção",
+        "user": user.rows[i],
+        ...urlsDescriptions[i]
+*/
         res.send(timeline);
 
     } catch (error) {
