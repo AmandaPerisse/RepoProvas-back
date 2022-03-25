@@ -86,7 +86,7 @@ export async function getTimeline(req, res) {
     try {
         /* mudar picture url */
         const user = await connection.query(`
-            SELECT u.id, u.username, u."pictureurl" FROM posts p
+            SELECT u.id, u.username, u."pictureUrl" FROM posts p
                 JOIN users u ON p."userId"=u.id
                 ORDER BY p.id DESC
                 LIMIT 20
