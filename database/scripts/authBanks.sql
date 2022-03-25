@@ -4,7 +4,7 @@ CREATE TABLE users
     username TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    pictureUrl TEXT NOT NULL
+    "pictureUrl" TEXT NOT NULL
 );
 
 CREATE TABLE sessions

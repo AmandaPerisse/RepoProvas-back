@@ -76,3 +76,28 @@ export async function postOnFeed(req, res) {
         res.sendStatus(500);
     }
 }
+
+export async function getTimeline(req, res) {
+    
+    
+    try {
+        /* mudar picture url */
+        const user = await connection.query(`
+            SELECT u.username, u."pictureurl" FROM posts p
+                JOIN users u ON p."userId"=u.id
+                ORDER BY p.id DESC
+                LIMIT 20
+        `);
+
+        const postInfo = await connection.query(`
+            SELECT p.description, p."likesAmount" FROM posts p
+                ORDER BY p.id DESC
+                LIMIT 20
+        `);
+
+        res.send(postInfo.rows);
+    } catch (error) {
+        console.error(error);
+        res.sendStatus(500);
+    }
+}
