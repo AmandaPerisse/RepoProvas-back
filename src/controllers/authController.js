@@ -13,13 +13,13 @@ export async function login(req, res) {
   if (bcrypt.compareSync(password, user.password)) {
     const token = uuid();
     await connection.query('INSERT INTO sessions (token, "userId") VALUES ($1, $2)', [token, user.id])
-    
+
     return res.send({
       token: token,
       user: {
         username: user.username,
         email: user.email,
-        pictureUrl: user.pictureurl
+        pictureUrl: user.pictureUrl
       }
     });
   }
