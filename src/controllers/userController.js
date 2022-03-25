@@ -13,7 +13,7 @@ export async function postUser(req, res) {
     const passwordHash = bcrypt.hashSync(user.password, 10);
     await connection.query(`
       INSERT INTO 
-        users (username, email, password, pictureUrl) 
+        users (username, email, password, "pictureUrl") 
       VALUES ($1, $2, $3, $4)
     `, [user.username, user.email, passwordHash, user.pictureUrl])
 
