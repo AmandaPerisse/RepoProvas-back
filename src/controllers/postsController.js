@@ -79,7 +79,6 @@ export async function postOnFeed(req, res) {
 }
 
 export async function getTimeline(req, res) {
-    
     const timeline = [];
     const urlsDescriptions = [];
 
@@ -92,7 +91,7 @@ export async function getTimeline(req, res) {
                 p.description,
                 p."likesAmount",
                 u.id AS "userId",
-                u.username,
+                u.name AS "userName",
                 u."pictureUrl" AS "userPictureUrl"
                     FROM posts p
                     JOIN users u ON p."userId"=u.id
@@ -103,7 +102,7 @@ export async function getTimeline(req, res) {
         for (let i = 0; i < postInfo.rowCount; i++) {
             await urlMetadata(postInfo.rows[i].rawUrl)
                 .then(
-                function (metadata) { // success handler
+                function (metadata) {
                     urlsDescriptions.push({
                         "url":
                             {
@@ -114,13 +113,13 @@ export async function getTimeline(req, res) {
                             }
                     });
                 },
-                function (error) { // failure handler
+                function (error) {
                     console.log(error)
                     res.send('url-metadata error').status(503);
                 })  
         }
 
-        for (let i = 0; i < user.rowCount; i++) {
+        for (let i = 0; i < postInfo.rowCount; i++) {
             timeline.push(
                 {
                     id: postInfo.rows[i].postId,
@@ -131,20 +130,14 @@ export async function getTimeline(req, res) {
                     "likedBy": "Em construção",
                     "user": {
                         id: postInfo.rows[i].userId,
-                        name: postInfo.rows[i].username,
+                        name: postInfo.rows[i].userName,
                         pictureUrl: postInfo.rows[i].userPictureUrl
                     },
                     ...urlsDescriptions[i]
                 }
             )
         }
-/*
-        ...postInfo.rows[i],
-        "likedByUser": false,
-        "likedBy": "Em construção",
-        "user": user.rows[i],
-        ...urlsDescriptions[i]
-*/
+
         res.send(timeline);
 
     } catch (error) {

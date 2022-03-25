@@ -17,7 +17,7 @@ export async function login(req, res) {
     return res.send({
       token: token,
       user: {
-        username: user.username,
+        userName: user.name,
         email: user.email,
         pictureUrl: user.pictureurl
       }
