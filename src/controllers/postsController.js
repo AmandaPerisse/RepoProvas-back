@@ -107,7 +107,7 @@ export async function getTimeline(req, res) {
                             {
                                 "link": metadata.url,
                                 "title": metadata.title,
-                                "descirption": metadata.description,
+                                "description": metadata.description,
                                 "image": metadata.image
                             }
                     });
