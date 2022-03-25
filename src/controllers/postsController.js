@@ -93,11 +93,9 @@ export async function getTimeline(req, res) {
         `);
 
         const postInfo = await connection.query(`
-            SELECT p.id AS "postId", p.url AS "rawUrl", p.description, p."likesAmount", u.id AS "userId", u.username AS name, u."pictureUrl"
-                FROM posts p
-                JOIN users u ON p."userId"=u.id
-                    ORDER BY p.id DESC
-                    LIMIT 20
+            SELECT p.id AS "postId", p.url AS "rawUrl", p.description, p."likesAmount" FROM posts p
+                ORDER BY p.id DESC
+                LIMIT 20
         `);
 
         for (let i = 0; i < user.rowCount; i++) {
@@ -123,26 +121,14 @@ export async function getTimeline(req, res) {
         for (let i = 0; i < user.rowCount; i++) {
             timeline.push(
                 {
-                    ...postInfo.rows[i].postId,
-                    ...postInfo.rows[i].rawUrl,
-                    ...postInfo.rows[i].description,
-                    ...postInfo.rows[i].likesAmount,
-                    ...postInfo.rows[i].likedByUser,
-                    "user": {
-                        ...postInfo.rows[i].id,
-                        ...postInfo.rows[i].name,
-                        ...postInfo.rows[i].pictureUrl
-                        },
+                    ...postInfo.rows[i],
+                    "likedByUser": false,
+                    "likedBy": "Em construção",
+                    "user": user.rows[i],
                     ...urlsDescriptions[i]
                 }
             )
         }
-
-        // ...postInfo.rows[i],
-        // "likedByUser": false,
-        // "likedBy": "Em construção",
-        // "user": user.rows[i],
-        // ...urlsDescriptions[i]
 
         res.send(timeline);
 
