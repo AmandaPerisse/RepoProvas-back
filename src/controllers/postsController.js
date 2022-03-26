@@ -79,29 +79,30 @@ export async function postOnFeed(req, res) {
 }
 
 export async function getTimeline(req, res) {
-    
     const timeline = [];
     const urlsDescriptions = [];
 
     try {
-        /* mudar picture url */
-        const user = await connection.query(`
-            SELECT u.id, u.username, u."pictureUrl" FROM posts p
-                JOIN users u ON p."userId"=u.id
-                ORDER BY p.id DESC
-                LIMIT 20
-        `);
-
+        /* FALTA QUERY PARA likedByUser e likedBy */
         const postInfo = await connection.query(`
-            SELECT p.id AS "postId", p.url AS "rawUrl", p.description, p."likesAmount" FROM posts p
-                ORDER BY p.id DESC
-                LIMIT 20
+            SELECT
+                p.id AS "postId",
+                p.url AS "rawUrl",
+                p.description,
+                p."likesAmount",
+                u.id AS "userId",
+                u.name AS "userName",
+                u."pictureUrl" AS "userPictureUrl"
+                    FROM posts p
+                    JOIN users u ON p."userId"=u.id
+                        ORDER BY p.id DESC
+                        LIMIT 20
         `);
 
-        for (let i = 0; i < user.rowCount; i++) {
+        for (let i = 0; i < postInfo.rowCount; i++) {
             await urlMetadata(postInfo.rows[i].rawUrl)
                 .then(
-                function (metadata) { // success handler
+                function (metadata) {
                     urlsDescriptions.push({
                         "url":
                             {
@@ -112,19 +113,26 @@ export async function getTimeline(req, res) {
                             }
                     });
                 },
-                function (error) { // failure handler
+                function (error) {
                     console.log(error)
                     res.send('url-metadata error').status(503);
                 })  
         }
 
-        for (let i = 0; i < user.rowCount; i++) {
+        for (let i = 0; i < postInfo.rowCount; i++) {
             timeline.push(
                 {
-                    ...postInfo.rows[i],
+                    id: postInfo.rows[i].postId,
+                    rawUrl: postInfo.rows[i].rawUrl,
+                    description: postInfo.rows[i].description,
+                    likesAmount: postInfo.rows[i].likesAmount,
                     "likedByUser": false,
                     "likedBy": "Em construção",
-                    "user": user.rows[i],
+                    "user": {
+                        id: postInfo.rows[i].userId,
+                        name: postInfo.rows[i].userName,
+                        pictureUrl: postInfo.rows[i].userPictureUrl
+                    },
                     ...urlsDescriptions[i]
                 }
             )
