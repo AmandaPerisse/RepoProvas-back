@@ -5,7 +5,9 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "npx nodemon src/app.js"
+    "start": "node ./src/app.js",
+    "dev": "npx nodemon ./src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
