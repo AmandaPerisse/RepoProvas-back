@@ -19,7 +19,7 @@ export async function login(req, res) {
       user: {
         userName: user.name,
         email: user.email,
-        pictureUrl: user.pictureurl
+        pictureUrl: user.pictureUrl
       }
     });
   }
