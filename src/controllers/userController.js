@@ -15,7 +15,7 @@ export async function postUser(req, res) {
       INSERT INTO 
         users ("name", email, password, "pictureUrl") 
       VALUES ($1, $2, $3, $4)
-    `, [user.userName, user.email, passwordHash, user.pictureUrl])
+    `, [user.name, user.email, passwordHash, user.pictureUrl])
 
     res.sendStatus(201);
   } catch (error) {
