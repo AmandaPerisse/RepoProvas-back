@@ -114,8 +114,17 @@ export async function getTimeline(req, res) {
                     });
                 },
                 function (error) {
-                    console.log(error)
-                    res.send('url-metadata error').status(503);
+                    console.log('url-metadata error');
+                    console.log(error);
+                    urlsDescriptions.push({
+                        "url":
+                            {
+                                "link": postInfo.rows[i].rawUrl,
+                                "title": postInfo.rows[i].rawUrl,
+                                "description": "",
+                                "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
+                            }
+                    });
                 })  
         }
 
