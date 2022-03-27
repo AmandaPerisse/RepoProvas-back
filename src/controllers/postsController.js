@@ -125,7 +125,7 @@ export async function getTimeline(req, res) {
                                 "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
                             }
                     });
-                })  
+                })
         }
 
         for (let i = 0; i < postInfo.rowCount; i++) {
