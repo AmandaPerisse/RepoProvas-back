@@ -121,7 +121,7 @@ export async function getTimeline(req, res) {
                             {
                                 "link": postInfo.rows[i].rawUrl,
                                 "title": postInfo.rows[i].rawUrl,
-                                "description": "",
+                                "description": "URL with error or not found",
                                 "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
                             }
                     });
