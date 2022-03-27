@@ -4,11 +4,11 @@ import urlMetadata from 'url-metadata';
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
     const userId = res.locals.user.id;
-    
+
     function findHashtags(description) {
         const descriptionArray = description.split(' ');
         const hashtagsArray = [];
-        
+
         for (let i = 0; i < descriptionArray.length; i++) {
             if (descriptionArray[i][0] === "#") {
                 if (hashtagsArray.includes(descriptionArray[i].replace('#', ''))) { continue };
@@ -36,19 +36,19 @@ export async function postOnFeed(req, res) {
                         SET amount = amount + 1
                         WHERE id = $1`, [existingHashtag.rows[0].id]);
                 continue;
-            
+
             } else {
                 await connection.query(`
                     INSERT INTO hashtags (name, "userId")
                         VALUES ($1, $2)`, [hashtagsArray[i], userId]);
-                        
+
                 const hashtagJustCreated = await connection.query(`
                     SELECT * FROM hashtags
                         WHERE "userId" = $1
                             ORDER BY id DESC
                             LIMIT 1`, [userId]);
 
-                hashtagsIdInPost.push(hashtagJustCreated.rows[0].id) 
+                hashtagsIdInPost.push(hashtagJustCreated.rows[0].id)
             }
         }
 
@@ -102,21 +102,21 @@ export async function getTimeline(req, res) {
         for (let i = 0; i < postInfo.rowCount; i++) {
             await urlMetadata(postInfo.rows[i].rawUrl)
                 .then(
-                function (metadata) {
-                    urlsDescriptions.push({
-                        "url":
+                    function (metadata) {
+                        urlsDescriptions.push({
+                            "url":
                             {
                                 "link": metadata.url,
                                 "title": metadata.title,
                                 "description": metadata.description,
                                 "image": metadata.image
                             }
-                    });
-                },
-                function (error) {
-                    console.log(error)
-                    res.send('url-metadata error').status(503);
-                })  
+                        });
+                    },
+                    function (error) {
+                        console.log(error)
+                        res.send('url-metadata error').status(503);
+                    })
         }
 
         for (let i = 0; i < postInfo.rowCount; i++) {
@@ -143,5 +143,23 @@ export async function getTimeline(req, res) {
     } catch (error) {
         console.error(error);
         res.sendStatus(500);
+    }
+}
+
+export async function deletePost(req, res) {
+    const { postId } = req.params;
+    const { user } = res.locals;
+
+    try {
+        const result = await connection.query(`SELECT * FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+        if (result.rowCount === 0)
+            return res.sendStatus(404);
+        await connection.query(`DELETE FROM "hashtagsPosts" WHERE "postId" = $1`, [parseInt(postId)]);
+        await connection.query(`DELETE FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
     }
 }
