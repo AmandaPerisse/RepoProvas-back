@@ -1,8 +1,11 @@
 import joi from 'joi';
 
-const postSchema = joi.object({
+export const postSchema = joi.object({
     url: joi.string().uri().required(),
     description: joi.string().allow(null, '')
 });
 
-export default postSchema;
+export const newDescriptionSchema = joi.object({
+    description: joi.string().allow(null, ''),
+    userId: joi.number().min(1).required(),
+});

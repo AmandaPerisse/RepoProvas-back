@@ -111,21 +111,21 @@ export async function getTimeline(req, res) {
                                 "description": metadata.description,
                                 "image": metadata.image
                             }
-                    });
-                },
-                function (error) {
-                    console.log('url-metadata error');
-                    console.log(error);
-                    urlsDescriptions.push({
-                        "url":
+                        });
+                    },
+                    function (error) {
+                        console.log('url-metadata error');
+                        console.log(error);
+                        urlsDescriptions.push({
+                            "url":
                             {
                                 "link": postInfo.rows[i].rawUrl,
                                 "title": postInfo.rows[i].rawUrl,
                                 "description": "URL with error or not found",
                                 "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
                             }
-                    });
-                })  
+                        });
+                    })
         }
 
         for (let i = 0; i < postInfo.rowCount; i++) {
@@ -165,6 +165,27 @@ export async function deletePost(req, res) {
             return res.sendStatus(404);
         await connection.query(`DELETE FROM "hashtagsPosts" WHERE "postId" = $1`, [parseInt(postId)]);
         await connection.query(`DELETE FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
+    }
+}
+
+export async function putPost(req, res) {
+    const { postId } = req.params;
+    const { description, userId } = req.body;
+
+    try {
+        console.log("descrição: ", description)
+        console.log("userId: ", userId)
+        console.log("postId: ", postId)
+
+        const result = await connection.query(`SELECT * FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), userId]);
+        if (result.rowCount === 0)
+            return res.sendStatus(404);
+        await connection.query(`UPDATE posts SET description=$1 WHERE id=$2;`, [description, parseInt(postId)]);
 
         res.sendStatus(200);
     } catch (error) {
