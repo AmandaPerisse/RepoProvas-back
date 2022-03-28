@@ -252,3 +252,72 @@ export async function putPost(req, res) {
         return res.sendStatus(500);
     }
 }
+
+export async function userPosts(req, res) {
+    const timeline = [];
+    const urlsDescriptions = [];
+    
+    try {
+       const id = req.params.id;
+
+       const postInfo = await connection.query(`
+       SELECT
+           p.id AS "postId",
+           p.url AS "rawUrl",
+           p.description,
+           p."likesAmount",
+           u.id AS "userId",
+           u.name AS "userName",
+           u."pictureUrl" AS "userPictureUrl"
+               FROM posts p
+               JOIN users u ON p."userId"=u.id
+            WHERE p."userId" = $1
+   `, [id]);
+
+   for (let i = 0; i < postInfo.rowCount; i++) {
+       await urlMetadata(postInfo.rows[i].rawUrl)
+           .then(
+           function (metadata) {
+               urlsDescriptions.push({
+                   "url":
+                       {
+                           "link": metadata.url,
+                           "title": metadata.title,
+                           "description": metadata.description,
+                           "image": metadata.image
+                       }
+               });
+           },
+           function (error) {
+               console.log(error)
+               res.send('url-metadata error').status(503);
+           })  
+   }
+
+   for (let i = 0; i < postInfo.rowCount; i++) {
+       timeline.push(
+           {
+               id: postInfo.rows[i].postId,
+               rawUrl: postInfo.rows[i].rawUrl,
+               description: postInfo.rows[i].description,
+               likesAmount: postInfo.rows[i].likesAmount,
+               "likedByUser": false,
+               "likedBy": "Em construção",
+               "user": {
+                   id: postInfo.rows[i].userId,
+                   name: postInfo.rows[i].userName,
+                   pictureUrl: postInfo.rows[i].userPictureUrl
+               },
+               ...urlsDescriptions[i]
+           }
+       )
+   }
+
+   res.send(timeline);
+
+    }
+    catch (error) {
+      console.log(error);
+      return res.sendStatus(500);
+    }
+  }

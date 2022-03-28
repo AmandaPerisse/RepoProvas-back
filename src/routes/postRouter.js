@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { postOnFeed, getTimeline, deletePost, putPost, likePost, unlikePost } from "../controllers/postsController.js"
+import { postOnFeed, getTimeline, deletePost, putPost, likePost, unlikePost, userPosts } from "../controllers/postsController.js"
 import { validateSchemaMiddleware } from "../middlewares/validateSchemaMiddleware.js";
 import { validateTokenMiddleware } from "../middlewares/validateTokenMiddleware.js";
 import { newDescriptionSchema, postSchema } from "../schemas/postSchemas.js";
@@ -14,5 +14,7 @@ postRouter.put('/feed/:postId', validateSchemaMiddleware(newDescriptionSchema, 4
 
 postRouter.patch('/like/:postId', validateTokenMiddleware, likePost);
 postRouter.patch('/unlike/:postId', validateTokenMiddleware, unlikePost);
+
+postRouter.get('/user/:id', validateTokenMiddleware, userPosts);
 
 export default postRouter;
