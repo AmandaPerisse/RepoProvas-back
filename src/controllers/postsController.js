@@ -1,6 +1,6 @@
 import { connection } from '../database.js';
 import urlMetadata from 'url-metadata';
-import { findPost, findUserLikes } from '../repositories/postRepository.js';
+import { getPost, getUserLikes, generateLikedBy } from '../repositories/postRepository.js';
 
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
@@ -102,7 +102,7 @@ export async function getTimeline(req, res) {
                         LIMIT 20
         `);
 
-        const userLikes = await findUserLikes(userId);
+        const userLikes = await getUserLikes(userId);
         const postIdsUserLiked = [].concat.apply([], userLikes.rows);
 
         for (let i = 0; i < postInfo.rowCount; i++) {
@@ -135,14 +135,18 @@ export async function getTimeline(req, res) {
         }
 
         for (let i = 0; i < postInfo.rowCount; i++) {
+            const likedByUser = postIdsUserLiked.includes(postInfo.rows[i].postId) ? true : false;
+            //const likedBy = 'construindo...';
+            const likedBy = await generateLikedBy(postInfo.rows[i].postId, userId, likedByUser, postInfo.rows[i].likesAmount);
+
             timeline.push(
                 {
                     id: postInfo.rows[i].postId,
                     rawUrl: postInfo.rows[i].rawUrl,
                     description: postInfo.rows[i].description,
                     likesAmount: postInfo.rows[i].likesAmount,
-                    "likedByUser": (postIdsUserLiked.includes(postInfo.rows[i].postId) ? true : false),
-                    "likedBy": "Em construção",
+                    "likedByUser": likedByUser,
+                    "likedBy": likedBy,
                     "user": {
                         id: postInfo.rows[i].userId,
                         name: postInfo.rows[i].userName,
@@ -166,7 +170,7 @@ export async function deletePost(req, res) {
     const { user } = res.locals;
 
     try {
-        const result = findPost(postId, user.id);
+        const result = getPost(postId, user.id);
         if (result.rowCount === 0)
             return res.sendStatus(404);
         await connection.query(`DELETE FROM "hashtagsPosts" WHERE "postId" = $1`, [parseInt(postId)]);
@@ -184,7 +188,7 @@ export async function likePost(req, res) {
     const { user } = res.locals;
 
     try {
-        const result = findPost(postId, user.id); /* middleware */
+        const result = getPost(postId, user.id); /* middleware */
         if (result.rowCount === 0)
             return res.sendStatus(404);
 
