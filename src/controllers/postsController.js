@@ -117,13 +117,13 @@ export async function getTimeline(req, res) {
                                 "description": metadata.description,
                                 "image": metadata.image
                             }
-                    });
-                },
-                function (error) {
-                    console.log('url-metadata error');
-                    console.log(error);
-                    urlsDescriptions.push({
-                        "url":
+                        });
+                    },
+                    function (error) {
+                        console.log('url-metadata error');
+                        console.log(error);
+                        urlsDescriptions.push({
+                            "url":
                             {
                                 "link": postInfo.rows[i].rawUrl,
                                 "title": postInfo.rows[i].rawUrl,
@@ -226,7 +226,27 @@ export async function unlikePost(req, res) {
                 WHERE id = $1`, [parseInt(postId)]);
 
         res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
+    }
+}
 
+export async function putPost(req, res) {
+    const { postId } = req.params;
+    const { description, userId } = req.body;
+
+    try {
+        console.log("descrição: ", description)
+        console.log("userId: ", userId)
+        console.log("postId: ", postId)
+
+        const result = await connection.query(`SELECT * FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), userId]);
+        if (result.rowCount === 0)
+            return res.sendStatus(404);
+        await connection.query(`UPDATE posts SET description=$1 WHERE id=$2;`, [description, parseInt(postId)]);
+
+        res.sendStatus(200);
     } catch (error) {
         console.log(error);
         return res.sendStatus(500);
