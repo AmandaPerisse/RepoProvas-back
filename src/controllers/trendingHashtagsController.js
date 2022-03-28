@@ -13,6 +13,8 @@ export async function getTrendingHashtags(req, res) {
 
 export async function getTrendingHashtagPosts(req, res) {
 
+    let timeline = [];
+
   const hashtag = req.params.hashtag;
   try{
     const postInfo = await connection.query(`
