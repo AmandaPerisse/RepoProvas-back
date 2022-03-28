@@ -3,6 +3,6 @@ import { getTrendingHashtags, getTrendingHashtagPosts } from "../controllers/tre
 import { validateTokenMiddleware } from "../middlewares/validateTokenMiddleware.js";
 
 const trendingHashtagsRouter = Router();
-trendingHashtagsRouter.get('/hashtag', getTrendingHashtags);
+trendingHashtagsRouter.get('/hashtag', validateTokenMiddleware, getTrendingHashtags);
 trendingHashtagsRouter.get('/hashtag/:hashtag', getTrendingHashtagPosts);
 export default trendingHashtagsRouter;
