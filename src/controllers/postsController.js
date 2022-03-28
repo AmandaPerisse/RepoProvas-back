@@ -1,5 +1,6 @@
 import { connection } from '../database.js';
 import urlMetadata from 'url-metadata';
+import { getPost, getUserLikes, generateLikedBy } from '../repositories/postRepository.js';
 
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
@@ -79,6 +80,8 @@ export async function postOnFeed(req, res) {
 }
 
 export async function getTimeline(req, res) {
+    const userId = res.locals.user.id;
+
     const timeline = [];
     const urlsDescriptions = [];
 
@@ -98,6 +101,9 @@ export async function getTimeline(req, res) {
                         ORDER BY p.id DESC
                         LIMIT 20
         `);
+
+        const userLikes = await getUserLikes(userId);
+        const postIdsUserLiked = [].concat.apply([], userLikes.rows);
 
         for (let i = 0; i < postInfo.rowCount; i++) {
             await urlMetadata(postInfo.rows[i].rawUrl)
@@ -124,19 +130,22 @@ export async function getTimeline(req, res) {
                                 "description": "URL with error or not found",
                                 "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
                             }
-                        });
-                    })
+                    });
+                })
         }
 
         for (let i = 0; i < postInfo.rowCount; i++) {
+            const likedByUser = postIdsUserLiked.includes(postInfo.rows[i].postId) ? true : false;
+            const likedBy = await generateLikedBy(postInfo.rows[i].postId, userId, likedByUser, postInfo.rows[i].likesAmount);
+
             timeline.push(
                 {
                     id: postInfo.rows[i].postId,
                     rawUrl: postInfo.rows[i].rawUrl,
                     description: postInfo.rows[i].description,
                     likesAmount: postInfo.rows[i].likesAmount,
-                    "likedByUser": false,
-                    "likedBy": "Em construção",
+                    "likedByUser": likedByUser,
+                    "likedBy": likedBy,
                     "user": {
                         id: postInfo.rows[i].userId,
                         name: postInfo.rows[i].userName,
@@ -160,11 +169,61 @@ export async function deletePost(req, res) {
     const { user } = res.locals;
 
     try {
-        const result = await connection.query(`SELECT * FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+        const result = getPost(postId, user.id);
         if (result.rowCount === 0)
             return res.sendStatus(404);
         await connection.query(`DELETE FROM "hashtagsPosts" WHERE "postId" = $1`, [parseInt(postId)]);
         await connection.query(`DELETE FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
+    }
+}
+
+export async function likePost(req, res) {
+    const { postId } = req.params;
+    const { user } = res.locals;
+
+    try {
+        const result = getPost(postId, user.id); /* middleware */
+        if (result.rowCount === 0)
+            return res.sendStatus(404);
+
+        await connection.query(`
+            INSERT INTO likes ("postId", "userId")
+                VALUES ($1, $2)`, [parseInt(postId), user.id]);
+
+        await connection.query(`
+            UPDATE posts
+                SET "likesAmount" = "likesAmount" + 1
+                WHERE id = $1`, [parseInt(postId)]);
+
+        res.sendStatus(200);
+
+    } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
+    }
+}
+
+export async function unlikePost(req, res) {
+    const { postId } = req.params;
+    const { user } = res.locals;
+
+    try {
+        const result = getPost(postId, user.id); /* middleware */
+        if (result.rowCount === 0)
+            return res.sendStatus(404);
+
+        await connection.query(`
+            DELETE FROM likes  WHERE "postId" = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+
+        await connection.query(`
+            UPDATE posts
+                SET "likesAmount" = "likesAmount" -1
+                WHERE id = $1`, [parseInt(postId)]);
 
         res.sendStatus(200);
     } catch (error) {
