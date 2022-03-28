@@ -43,8 +43,8 @@ export async function generateLikedBy(postId, userId, likedByUser, likesAmount) 
 	
 	if (likesAmount > 2) {
 		likedBy = likedByUser ?
-			`Você, ${usersLikedPost[0]} e ${likesAmount - 2 === 1 ? `outra pessoa` : `outras ${likesAmount - 2} pessoas`}` :
-			`${usersLikedPost[0]}, ${usersLikedPost[1]} e ${likesAmount - 2 === 1 ? `outra pessoa` : `outras ${likesAmount - 2} pessoas`}`
+			`Você, ${usersLikedPost[0]} e ${likesAmount - 2 === 1 ? usersLikedPost[2] : `outras ${likesAmount - 2} pessoas`}` :
+			`${usersLikedPost[0]}, ${usersLikedPost[1]} e ${likesAmount - 2 === 1 ? usersLikedPost[2] : `outras ${likesAmount - 2} pessoas`}`
 		return likedBy;
 	}
 

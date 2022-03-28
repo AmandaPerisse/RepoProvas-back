@@ -136,7 +136,6 @@ export async function getTimeline(req, res) {
 
         for (let i = 0; i < postInfo.rowCount; i++) {
             const likedByUser = postIdsUserLiked.includes(postInfo.rows[i].postId) ? true : false;
-            //const likedBy = 'construindo...';
             const likedBy = await generateLikedBy(postInfo.rows[i].postId, userId, likedByUser, postInfo.rows[i].likesAmount);
 
             timeline.push(
@@ -199,6 +198,31 @@ export async function likePost(req, res) {
         await connection.query(`
             UPDATE posts
                 SET "likesAmount" = "likesAmount" + 1
+                WHERE id = $1`, [parseInt(postId)]);
+
+        res.sendStatus(200);
+
+    } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
+    }
+}
+
+export async function unlikePost(req, res) {
+    const { postId } = req.params;
+    const { user } = res.locals;
+
+    try {
+        const result = getPost(postId, user.id); /* middleware */
+        if (result.rowCount === 0)
+            return res.sendStatus(404);
+
+        await connection.query(`
+            DELETE FROM likes  WHERE "postId" = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+
+        await connection.query(`
+            UPDATE posts
+                SET "likesAmount" = "likesAmount" -1
                 WHERE id = $1`, [parseInt(postId)]);
 
         res.sendStatus(200);

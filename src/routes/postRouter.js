@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { postOnFeed, getTimeline, deletePost, likePost } from "../controllers/postsController.js"
+import { postOnFeed, getTimeline, deletePost, likePost, unlikePost } from "../controllers/postsController.js"
 import { validateSchemaMiddleware } from "../middlewares/validateSchemaMiddleware.js";
 import { validateTokenMiddleware } from "../middlewares/validateTokenMiddleware.js";
 import postSchema from "../schemas/postSchemas.js";
@@ -10,5 +10,6 @@ postRouter.post('/feed', validateSchemaMiddleware(postSchema, 422), validateToke
 postRouter.delete('/feed/:postId', validateTokenMiddleware, deletePost);
 
 postRouter.patch('/like/:postId', validateTokenMiddleware, likePost);
+postRouter.patch('/unlike/:postId', validateTokenMiddleware, unlikePost);
 
 export default postRouter;
