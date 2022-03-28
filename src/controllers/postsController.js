@@ -86,7 +86,6 @@ export async function getTimeline(req, res) {
     const urlsDescriptions = [];
 
     try {
-        /* FALTA QUERY PARA likedByUser e likedBy */
         const postInfo = await connection.query(`
             SELECT
                 p.id AS "postId",

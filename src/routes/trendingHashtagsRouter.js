@@ -4,5 +4,5 @@ import { validateTokenMiddleware } from "../middlewares/validateTokenMiddleware.
 
 const trendingHashtagsRouter = Router();
 trendingHashtagsRouter.get('/hashtag', validateTokenMiddleware, getTrendingHashtags);
-trendingHashtagsRouter.get('/hashtag/:hashtag', getTrendingHashtagPosts);
+trendingHashtagsRouter.get('/hashtag/:hashtag', validateTokenMiddleware, getTrendingHashtagPosts);
 export default trendingHashtagsRouter;
