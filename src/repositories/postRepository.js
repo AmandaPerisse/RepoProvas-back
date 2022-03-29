@@ -1,4 +1,50 @@
 import { connection } from '../database.js';
+import urlMetadata from 'url-metadata';
+
+export async function createPost(url, description, creatorId) {
+	return await connection.query(`
+		INSERT INTO posts (url, description, "userId")
+			VALUES ($1, $2, $3)`, [url, description, creatorId]);
+}
+
+export async function getUserPosts(userId, limitOfPosts) {
+	const userPostsArray = [];
+	const userPostsQuery = await connection.query(`
+		SELECT * FROM posts
+			WHERE "userId" = $1
+				ORDER BY id DESC
+				LIMIT $2`, [userId, limitOfPosts]);
+
+	for (let i = 0; i < userPostsQuery.rows.length; i++) {
+		userPostsArray.push(userPostsQuery.rows[i]);
+	}
+
+	return userPostsArray;
+}
+
+export async function createBondPostHashtag(postId, hastagId) {
+	return await connection.query(`
+	INSERT INTO "hashtagsPosts" ("postId", "hashtagId")
+		VALUES ($1, $2)`, [postId, hastagId]);
+}
+
+export async function getLastPosts(limit) {
+	const timelineQuery = await connection.query(`
+		SELECT
+			p.id AS "postId",
+			p.url AS "rawUrl",
+			p.description,
+			p."likesAmount",
+			u.id AS "userId",
+			u.name AS "userName",
+			u."pictureUrl" AS "userPictureUrl"
+				FROM posts p
+				JOIN users u ON p."userId"=u.id
+					ORDER BY p.id DESC
+					LIMIT $1`, [limit]);
+
+	return timelineQuery.rows;
+}
 
 export async function getPost(postId, userId) {
 	return await connection.query(`
@@ -6,12 +52,40 @@ export async function getPost(postId, userId) {
 			WHERE id = $1 AND "userId" = $2`, [parseInt(postId), userId]);
 }
 
-export async function getUserLikes(userId) {
-	return await connection.query({
+export async function getPostIdsUserLiked(userId) {
+	const userLikesQuery = await connection.query({
 		text: `SELECT "postId" FROM likes WHERE "userId" = $1`,
 		values: [userId],
 		rowMode: 'array'
 	});
+
+	return userLikesQuery.rows.flat();
+}
+
+export async function createLinkPreview(url) {
+	await urlMetadata(url)
+		.then(
+			function (metadata) {
+				return ({
+					"url": {
+						"link": metadata.url,
+						"title": metadata.title,
+						"description": metadata.description,
+						"image": metadata.image
+					}
+				});
+			},
+			function (error) {
+				console.log(`url-metadata error: postId ${rawTimeline.rows[i].postId} has error on url ${error.hostname}`);
+				return ({
+					"url": {
+						"link": url,
+						"title": url,
+						"description": "BROKEN URL | URL with error or not found",
+						"image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
+					}
+			});
+		})
 }
 
 export async function getUsersLikedPost(postId, userId, firstsQty) {

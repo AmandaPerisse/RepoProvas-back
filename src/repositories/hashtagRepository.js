@@ -4,10 +4,18 @@ export async function findHashtagsInDescription(description) {
 	const descriptionArray = description.split(' ');
 	const hashtagsArray = [];
 
+    function isHashtagRepeated(hashtagName) {
+        return hashtagsArray.includes(hashtagName.replace('#', ''));
+    }
+
 	for (let i = 0; i < descriptionArray.length; i++) {
 		if (descriptionArray[i][0] === "#") {
-			if (hashtagsArray.includes(descriptionArray[i].replace('#', ''))) { continue };
-			hashtagsArray.push(descriptionArray[i].replace('#', ''));
+			if (isHashtagRepeated(descriptionArray[i])) { continue };
+
+            const hashtagName = descriptionArray[i].replace('#', '');
+			if (hashtagName.length === 0 || hashtagName.includes('#')) { continue };
+
+			hashtagsArray.push(hashtagName);
 			continue;
 		}
 	}
@@ -28,10 +36,10 @@ export async function addOneInExistingHashtagAmount(hashtagId) {
 			WHERE id = $1`, [hashtagId]);
 }
 
-export async function createNewHashtag(hashtagName, userId) {
+export async function createNewHashtag(hashtagName, creatorId) {
 	return await connection.query(`
 		INSERT INTO hashtags (name, "userId")
-			VALUES ($1, $2)`, [hashtagName, userId]);
+			VALUES ($1, $2)`, [hashtagName, creatorId]);
 }
 
 export async function getHashtagData(hashtagName) {

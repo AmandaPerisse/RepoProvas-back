@@ -2,17 +2,15 @@ import { connection } from '../database.js';
 import urlMetadata from 'url-metadata';
 import { findHashtagsInDescription, getExistingHashtags, addOneInExistingHashtagAmount,
     createNewHashtag, getHashtagData } from '../repositories/hashtagRepository.js';
-import { getPost, getUserLikes, generateLikedBy } from '../repositories/postRepository.js';
+import { createPost, getUserPosts, createBondPostHashtag, getLastPosts, getPost, getPostIdsUserLiked, createLinkPreview, generateLikedBy } from '../repositories/postRepository.js';
 
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
     const userId = res.locals.user.id;
 
     const hashtagsArray = await findHashtagsInDescription(description);
-
     try {
         const hashtagsIdInPost = [];
-
         for (let i = 0; i < hashtagsArray.length; i++) {
             const existingHashtag = await getExistingHashtags(hashtagsArray[i]);
 
@@ -28,22 +26,12 @@ export async function postOnFeed(req, res) {
             }
         }
 
-        await connection.query(`
-            INSERT INTO posts (url, description, "userId")
-                VALUES ($1, $2, $3)`, [url, description, userId]);
+        await createPost(url, description, userId);
 
-        const justPostedPost = await connection.query(`
-            SELECT * FROM posts
-                WHERE "userId" = $1
-                    ORDER BY id DESC
-                    LIMIT 1`, [userId]);
-
-        const justPostedPostId = justPostedPost.rows[0].id;
+        const [ justPostedPost ] = await getUserPosts(userId, 1);
 
         for (let i = 0; i < hashtagsIdInPost.length; i++) {
-            await connection.query(`
-                INSERT INTO "hashtagsPosts" ("postId", "hashtagId")
-                    VALUES ($1, $2)`, [justPostedPostId, hashtagsIdInPost[i]]);
+            await createBondPostHashtag(justPostedPost.id, hashtagsIdInPost[i])
         }
 
         res.sendStatus(201);
@@ -61,27 +49,12 @@ export async function getTimeline(req, res) {
     const urlsDescriptions = [];
 
     try {
-        /* FALTA QUERY PARA likedByUser e likedBy */
-        const postInfo = await connection.query(`
-            SELECT
-                p.id AS "postId",
-                p.url AS "rawUrl",
-                p.description,
-                p."likesAmount",
-                u.id AS "userId",
-                u.name AS "userName",
-                u."pictureUrl" AS "userPictureUrl"
-                    FROM posts p
-                    JOIN users u ON p."userId"=u.id
-                        ORDER BY p.id DESC
-                        LIMIT 20
-        `);
+        const rawTimeline = await getLastPosts(20);
+        const postIdsUserLiked = await getPostIdsUserLiked(userId);
+        console.log(rawTimeline);
 
-        const userLikes = await getUserLikes(userId);
-        const postIdsUserLiked = [].concat.apply([], userLikes.rows);
-
-        for (let i = 0; i < postInfo.rowCount; i++) {
-            await urlMetadata(postInfo.rows[i].rawUrl)
+        for (let i = 0; i < rawTimeline.length; i++) {
+            await urlMetadata(rawTimeline[i].rawUrl)
                 .then(
                     function (metadata) {
                         urlsDescriptions.push({
@@ -96,12 +69,12 @@ export async function getTimeline(req, res) {
                     },
                     function (error) {
                         console.log('url-metadata error');
-                        console.log(`postId ${postInfo.rows[i].postId} has error on url ${error.hostname}`);
+                        console.log(`postId ${rawTimeline[i].postId} has error on url ${error.hostname}`);
                         urlsDescriptions.push({
                             "url":
                             {
-                                "link": postInfo.rows[i].rawUrl,
-                                "title": postInfo.rows[i].rawUrl,
+                                "link": rawTimeline[i].rawUrl,
+                                "title": rawTimeline[i].rawUrl,
                                 "description": "URL with error or not found",
                                 "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
                             }
@@ -109,22 +82,22 @@ export async function getTimeline(req, res) {
                 })
         }
 
-        for (let i = 0; i < postInfo.rowCount; i++) {
-            const likedByUser = postIdsUserLiked.includes(postInfo.rows[i].postId) ? true : false;
-            const likedBy = await generateLikedBy(postInfo.rows[i].postId, userId, likedByUser, postInfo.rows[i].likesAmount);
+        for (let i = 0; i < rawTimeline.length; i++) {
+            const likedByUser = postIdsUserLiked.includes(rawTimeline[i].postId) ? true : false;
+            const likedBy = await generateLikedBy(rawTimeline[i].postId, userId, likedByUser, rawTimeline[i].likesAmount);
 
             timeline.push(
                 {
-                    id: postInfo.rows[i].postId,
-                    rawUrl: postInfo.rows[i].rawUrl,
-                    description: postInfo.rows[i].description,
-                    likesAmount: postInfo.rows[i].likesAmount,
+                    id: rawTimeline[i].postId,
+                    rawUrl: rawTimeline[i].rawUrl,
+                    description: rawTimeline[i].description,
+                    likesAmount: rawTimeline[i].likesAmount,
                     "likedByUser": likedByUser,
                     "likedBy": likedBy,
                     "user": {
-                        id: postInfo.rows[i].userId,
-                        name: postInfo.rows[i].userName,
-                        pictureUrl: postInfo.rows[i].userPictureUrl
+                        id: rawTimeline[i].userId,
+                        name: rawTimeline[i].userName,
+                        pictureUrl: rawTimeline[i].userPictureUrl
                     },
                     ...urlsDescriptions[i]
                 }
@@ -235,7 +208,7 @@ export async function userPosts(req, res) {
     try {
        const id = req.params.id;
 
-       const postInfo = await connection.query(`
+       const rawTimeline = await connection.query(`
        SELECT
            p.id AS "postId",
            p.url AS "rawUrl",
@@ -249,8 +222,8 @@ export async function userPosts(req, res) {
             WHERE p."userId" = $1
    `, [id]);
 
-    for (let i = 0; i < postInfo.rowCount; i++) {
-        await urlMetadata(postInfo.rows[i].rawUrl)
+    for (let i = 0; i < rawTimeline.rowCount; i++) {
+        await urlMetadata(rawTimeline[i].rawUrl)
         .then(
             function (metadata) {
                 urlsDescriptions.push({
@@ -265,12 +238,12 @@ export async function userPosts(req, res) {
             },
             function (error) {
                 console.log('url-metadata error');
-                console.log(`postId ${postInfo.rows[i].postId} has error on url ${error.hostname}`);
+                console.log(`postId ${rawTimeline[i].postId} has error on url ${error.hostname}`);
                 urlsDescriptions.push({
                     "url":
                     {
-                        "link": postInfo.rows[i].rawUrl,
-                        "title": postInfo.rows[i].rawUrl,
+                        "link": rawTimeline[i].rawUrl,
+                        "title": rawTimeline[i].rawUrl,
                         "description": "URL with error or not found",
                         "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
                     }
@@ -278,19 +251,19 @@ export async function userPosts(req, res) {
         })
 }
 
-   for (let i = 0; i < postInfo.rowCount; i++) {
+   for (let i = 0; i < rawTimeline.rowCount; i++) {
        timeline.push(
            {
-               id: postInfo.rows[i].postId,
-               rawUrl: postInfo.rows[i].rawUrl,
-               description: postInfo.rows[i].description,
-               likesAmount: postInfo.rows[i].likesAmount,
+               id: rawTimeline[i].postId,
+               rawUrl: rawTimeline[i].rawUrl,
+               description: rawTimeline[i].description,
+               likesAmount: rawTimeline[i].likesAmount,
                "likedByUser": false,
                "likedBy": "Em construção",
                "user": {
-                   id: postInfo.rows[i].userId,
-                   name: postInfo.rows[i].userName,
-                   pictureUrl: postInfo.rows[i].userPictureUrl
+                   id: rawTimeline[i].userId,
+                   name: rawTimeline[i].userName,
+                   pictureUrl: rawTimeline[i].userPictureUrl
                },
                ...urlsDescriptions[i]
            }
