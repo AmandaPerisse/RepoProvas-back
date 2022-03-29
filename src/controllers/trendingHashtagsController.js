@@ -4,12 +4,12 @@ import { getPost, getUserLikes, generateLikedBy } from '../repositories/postRepo
 
 export async function getTrendingHashtags(req, res) {
 
-  const hashtags = await connection.query(`
+    const hashtags = await connection.query(`
     SELECT * 
     FROM hashtags 
     ORDER BY amount DESC
     LIMIT 10`);
-  res.send(hashtags.rows);
+    res.send(hashtags.rows);
 }
 
 export async function getTrendingHashtagPosts(req, res) {
@@ -55,8 +55,8 @@ export async function getTrendingHashtagPosts(req, res) {
                                 "description": "URL with error or not found",
                                 "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
                             }
-                    });
-                })
+                        });
+                    })
         }
 
         for (let i = 0; i < postInfo.rowCount; i++) {
@@ -87,6 +87,6 @@ export async function getTrendingHashtagPosts(req, res) {
         console.error(error);
         res.sendStatus(500);
     }
-  
+
 }
 
