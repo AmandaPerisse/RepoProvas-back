@@ -121,7 +121,7 @@ export async function getTimeline(req, res) {
                     },
                     function (error) {
                         console.log('url-metadata error');
-                        console.log(error);
+                        console.log(`postId ${postInfo.rows[i].postId} has error on url ${error.hostname}`);
                         urlsDescriptions.push({
                             "url":
                             {
@@ -274,25 +274,34 @@ export async function userPosts(req, res) {
             WHERE p."userId" = $1
    `, [id]);
 
-   for (let i = 0; i < postInfo.rowCount; i++) {
-       await urlMetadata(postInfo.rows[i].rawUrl)
-           .then(
-           function (metadata) {
-               urlsDescriptions.push({
-                   "url":
-                       {
-                           "link": metadata.url,
-                           "title": metadata.title,
-                           "description": metadata.description,
-                           "image": metadata.image
-                       }
-               });
-           },
-           function (error) {
-               console.log(error)
-               res.send('url-metadata error').status(503);
-           })  
-   }
+    for (let i = 0; i < postInfo.rowCount; i++) {
+        await urlMetadata(postInfo.rows[i].rawUrl)
+        .then(
+            function (metadata) {
+                urlsDescriptions.push({
+                    "url":
+                    {
+                        "link": metadata.url,
+                        "title": metadata.title,
+                        "description": metadata.description,
+                        "image": metadata.image
+                    }
+                });
+            },
+            function (error) {
+                console.log('url-metadata error');
+                console.log(`postId ${postInfo.rows[i].postId} has error on url ${error.hostname}`);
+                urlsDescriptions.push({
+                    "url":
+                    {
+                        "link": postInfo.rows[i].rawUrl,
+                        "title": postInfo.rows[i].rawUrl,
+                        "description": "URL with error or not found",
+                        "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
+                    }
+            });
+        })
+}
 
    for (let i = 0; i < postInfo.rowCount; i++) {
        timeline.push(
