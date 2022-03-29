@@ -23,9 +23,9 @@ export async function getTrendingHashtagPosts(req, res) {
             from posts p
             join users u on p."userId"=u.id
             where p.description
-            like '%#${hashtag} %'
+            like '%#$1 %'
             order by p.id DESC
-            limit 20`);
+            limit 20`, [hashtag]);
 
         const userLikes = await getUserLikes(userId);
         const postIdsUserLiked = [].concat.apply([], userLikes.rows);
