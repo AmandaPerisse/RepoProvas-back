@@ -1,6 +1,5 @@
 import bcrypt from 'bcrypt';
 import { v4 as uuid } from 'uuid';
-import { connection } from '../database.js';
 import { getExistingUser, createNewSession, createUserObject } from '../repositories/userRepository.js';
 
 export async function login(req, res) {
@@ -21,4 +20,3 @@ export async function login(req, res) {
 
   res.sendStatus(401);
 }
-

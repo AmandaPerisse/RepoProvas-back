@@ -1,55 +1,30 @@
 import { connection } from '../database.js';
 import urlMetadata from 'url-metadata';
+import { findHashtagsInDescription, getExistingHashtags, addOneInExistingHashtagAmount,
+    createNewHashtag, getHashtagData } from '../repositories/hashtagRepository.js';
 import { getPost, getUserLikes, generateLikedBy } from '../repositories/postRepository.js';
 
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
     const userId = res.locals.user.id;
 
-    function findHashtags(description) {
-        const descriptionArray = description.split(' ');
-        const hashtagsArray = [];
-
-        for (let i = 0; i < descriptionArray.length; i++) {
-            if (descriptionArray[i][0] === "#") {
-                if (hashtagsArray.includes(descriptionArray[i].replace('#', ''))) { continue };
-                hashtagsArray.push(descriptionArray[i].replace('#', ''));
-                continue;
-            }
-        }
-        return hashtagsArray;
-    }
-
-    const hashtagsArray = findHashtags(description);
+    const hashtagsArray = await findHashtagsInDescription(description);
 
     try {
         const hashtagsIdInPost = [];
 
         for (let i = 0; i < hashtagsArray.length; i++) {
-            const existingHashtag = await connection.query(`
-                SELECT * FROM hashtags
-                    WHERE name=$1`, [hashtagsArray[i]]);
+            const existingHashtag = await getExistingHashtags(hashtagsArray[i]);
 
-            if (existingHashtag.rows[0]) {
-                hashtagsIdInPost.push(existingHashtag.rows[0].id)
-                await connection.query(`
-                    UPDATE hashtags
-                        SET amount = amount + 1
-                        WHERE id = $1`, [existingHashtag.rows[0].id]);
+            if (existingHashtag) {
+                hashtagsIdInPost.push(existingHashtag.id)
+                await addOneInExistingHashtagAmount(existingHashtag.id);
                 continue;
 
             } else {
-                await connection.query(`
-                    INSERT INTO hashtags (name, "userId")
-                        VALUES ($1, $2)`, [hashtagsArray[i], userId]);
-
-                const hashtagJustCreated = await connection.query(`
-                    SELECT * FROM hashtags
-                        WHERE "userId" = $1
-                            ORDER BY id DESC
-                            LIMIT 1`, [userId]);
-
-                hashtagsIdInPost.push(hashtagJustCreated.rows[0].id)
+                await createNewHashtag(hashtagsArray[i], userId);
+                const hashtagJustCreated = await getHashtagData(hashtagsArray[i])
+                hashtagsIdInPost.push(hashtagJustCreated.id)
             }
         }
 
