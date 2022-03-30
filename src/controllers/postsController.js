@@ -1,5 +1,5 @@
 import { findHashtagsInDescription, addOneInExistingHashtagAmount,
-    createNewHashtag, getHashtagData } from '../repositories/hashtagRepository.js';
+    createNewHashtag, getHashtagDataByParameter } from '../repositories/hashtagRepository.js';
 import { createPost, getUserPosts, createBondPostHashtag,
     getLastPosts, getPost, getPostIdsUserLiked, deleteLikesOnPost, deleteHashtagsPosts,
     deleteSinglePost, createLinkPreview, generateFeedPost,
@@ -13,7 +13,7 @@ export async function postOnFeed(req, res) {
     try {
         const hashtagsIdInPost = [];
         for (let i = 0; i < hashtagsArray.length; i++) {
-            const existingHashtag = await getHashtagData(hashtagsArray[i]);
+            const existingHashtag = await getHashtagDataByParameter("name", hashtagsArray[i]);
 
             if (existingHashtag) {
                 hashtagsIdInPost.push(existingHashtag.id)
@@ -22,7 +22,7 @@ export async function postOnFeed(req, res) {
 
             } else {
                 await createNewHashtag(hashtagsArray[i], userId);
-                const hashtagJustCreated = await getHashtagData(hashtagsArray[i])
+                const hashtagJustCreated = await getHashtagDataByParameter("name", hashtagsArray[i])
                 hashtagsIdInPost.push(hashtagJustCreated.id)
             }
         }
