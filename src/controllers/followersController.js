@@ -40,3 +40,28 @@ export async function follow (req, res) {
         return res.sendStatus(500);
     }
 }
+
+export async function checkIfFollows (req, res) {
+    const { userId, followerId } = req.params;
+    try
+    {
+        if (!userId || !followerId)
+        {
+            return res.sendStatus(400)
+        }
+        const result = await connection.query(`
+        SELECT FROM followers
+        WHERE "userId" = $1 AND "friendId" = $2`, [userId, followerId]);
+        if (result.rowsCount === 0)
+        {
+            return res.send(false);
+        }
+        return res.send(true);
+    }
+    catch (error) 
+    {
+        alert('Não foi possível realizar a operação...');
+        console.log(error);
+        return res.sendStatus(500);
+    }   
+}
