@@ -8,7 +8,6 @@ const postRouter = Router();
 postRouter.get('/feed', validateTokenMiddleware, getTimeline);
 postRouter.post('/feed', validateSchemaMiddleware(postSchema, 422), validateTokenMiddleware, postOnFeed);
 
-
 postRouter.delete('/feed/:postId', validateTokenMiddleware, deletePost);
 postRouter.put('/feed/:postId', validateSchemaMiddleware(newDescriptionSchema, 422), putPost);
 

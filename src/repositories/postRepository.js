@@ -28,20 +28,39 @@ export async function createBondPostHashtag(postId, hastagId) {
 		VALUES ($1, $2)`, [postId, hastagId]);
 }
 
-export async function getLastPosts(limit) {
-	const timelineQuery = await connection.query(`
-		SELECT
-			p.id AS "postId",
-			p.url AS "rawUrl",
-			p.description,
-			p."likesAmount",
-			u.id AS "userId",
-			u.name AS "userName",
-			u."pictureUrl" AS "userPictureUrl"
-				FROM posts p
-				JOIN users u ON p."userId"=u.id
-					ORDER BY p.id DESC
-					LIMIT $1`, [limit]);
+export async function getLastPosts(userId, limit) {
+	let timelineQuery;
+	if (userId) {
+		timelineQuery = await connection.query(`
+			SELECT
+				p.id AS "postId",
+				p.url AS "rawUrl",
+				p.description,
+				p."likesAmount",
+				u.id AS "userId",
+				u.name AS "userName",
+				u."pictureUrl" AS "userPictureUrl"
+					FROM posts p
+					JOIN users u ON p."userId"=u.id
+						WHERE u.id = $1
+						ORDER BY p.id DESC
+						LIMIT $2`, [userId, limit]);
+	} else {
+		timelineQuery = await connection.query(`
+			SELECT
+				p.id AS "postId",
+				p.url AS "rawUrl",
+				p.description,
+				p."likesAmount",
+				u.id AS "userId",
+				u.name AS "userName",
+				u."pictureUrl" AS "userPictureUrl"
+					FROM posts p
+					JOIN users u ON p."userId"=u.id
+						ORDER BY p.id DESC
+						LIMIT $1`, [limit]);
+	}
+
 
 	return timelineQuery.rows;
 }
@@ -63,10 +82,11 @@ export async function getPostIdsUserLiked(userId) {
 }
 
 export async function createLinkPreview(url) {
+	let urlData;
 	await urlMetadata(url)
 		.then(
 			function (metadata) {
-				return ({
+				urlData = ({
 					"url": {
 						"link": metadata.url,
 						"title": metadata.title,
@@ -77,7 +97,7 @@ export async function createLinkPreview(url) {
 			},
 			function (error) {
 				console.log(`url-metadata error: postId ${rawTimeline.rows[i].postId} has error on url ${error.hostname}`);
-				return ({
+				urlData = ({
 					"url": {
 						"link": url,
 						"title": url,
@@ -86,6 +106,42 @@ export async function createLinkPreview(url) {
 					}
 			});
 		})
+
+		return urlData;
+}
+
+export async function generateFeedPost(rawPost, postIdsUserLiked, linkPreview) {
+	const isPostLikedByUser = postIdsUserLiked.includes(rawPost.postId);
+	const likedBy = await generateLikedBy(rawPost.postId, rawPost.userId, isPostLikedByUser, rawPost.likesAmount);
+
+	const post = {
+		id: rawPost.postId,
+		rawUrl: rawPost.rawUrl,
+		description: rawPost.description,
+		likesAmount: rawPost.likesAmount,
+		"likedByUser": isPostLikedByUser,
+		"likedBy": likedBy,
+		"user": {
+			id: rawPost.userId,
+			name: rawPost.userName,
+			pictureUrl: rawPost.userPictureUrl
+		},
+		...linkPreview
+	}
+
+	return post;
+}
+
+export async function deleteHashtagsPosts(postId) {
+	return await connection.query(`DELETE FROM "hashtagsPosts" WHERE "postId" = $1`, [parseInt(postId)]);
+}
+
+export async function deleteSinglePost(postId, userId) {
+	return await connection.query(`DELETE FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), userId]);
+}
+
+export async function deleteLikesOnPost(postId) {
+	return await connection.query(`DELETE FROM likes WHERE "postId" = $1 `, [parseInt(postId)]);
 }
 
 export async function getUsersLikedPost(postId, userId, firstsQty) {
@@ -97,8 +153,7 @@ export async function getUsersLikedPost(postId, userId, firstsQty) {
 		values: [postId, userId, firstsQty],
 		rowMode: 'array'
 	});
-
-	return [].concat.apply([], arrayUsersLikedPost.rows);
+	return arrayUsersLikedPost.rows.flat();
 }
 
 export async function generateLikedBy(postId, userId, likedByUser, likesAmount) {
@@ -123,4 +178,35 @@ export async function generateLikedBy(postId, userId, likedByUser, likesAmount) 
 	}
 
 	return likedBy;
+}
+
+export async function insertLike(postId, userId) {
+	return await connection.query(`INSERT INTO likes ("postId", "userId")
+                VALUES ($1, $2)`, [parseInt(postId), userId]);
+}
+
+export async function updateLikesAmount(postId, type) {
+	if (type === 'like') {
+		return await connection.query(`
+            UPDATE posts
+                SET "likesAmount" = "likesAmount" + 1
+                WHERE id = $1`, [parseInt(postId)]);
+	}
+	if (type === 'unlike') {
+		return await connection.query(`
+            UPDATE posts
+                SET "likesAmount" = "likesAmount" - 1
+                WHERE id = $1`, [parseInt(postId)]);
+	}
+	return;
+}
+
+export async function removeLike(postId, userId) {
+	return await connection.query(`DELETE FROM likes
+		WHERE "postId" = $1 AND "userId" = $2`, [parseInt(postId), userId]);
+}
+
+export async function updatePostDescription(newDescription, postId) {
+	return await connection.query(`UPDATE posts
+		SET description=$1 WHERE id=$2;`, [newDescription, parseInt(postId)]);
 }
