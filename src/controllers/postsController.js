@@ -1,6 +1,6 @@
 import { connection } from '../database.js';
 import urlMetadata from 'url-metadata';
-import { findHashtagsInDescription, getExistingHashtags, addOneInExistingHashtagAmount,
+import { findHashtagsInDescription, addOneInExistingHashtagAmount,
     createNewHashtag, getHashtagData } from '../repositories/hashtagRepository.js';
 import { createPost, getUserPosts, createBondPostHashtag,
     getLastPosts, getPost, getPostIdsUserLiked, deleteLikesOnPost, deleteHashtagsPosts,
@@ -15,7 +15,7 @@ export async function postOnFeed(req, res) {
     try {
         const hashtagsIdInPost = [];
         for (let i = 0; i < hashtagsArray.length; i++) {
-            const existingHashtag = await getExistingHashtags(hashtagsArray[i]);
+            const existingHashtag = await getHashtagData(hashtagsArray[i]);
 
             if (existingHashtag) {
                 hashtagsIdInPost.push(existingHashtag.id)
