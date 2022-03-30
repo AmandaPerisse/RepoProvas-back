@@ -1,5 +1,3 @@
-import { connection } from '../database.js';
-import urlMetadata from 'url-metadata';
 import { findHashtagsInDescription, addOneInExistingHashtagAmount,
     createNewHashtag, getHashtagData } from '../repositories/hashtagRepository.js';
 import { createPost, getUserPosts, createBondPostHashtag,

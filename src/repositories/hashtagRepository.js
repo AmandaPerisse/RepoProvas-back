@@ -22,13 +22,6 @@ export async function findHashtagsInDescription(description) {
 	return hashtagsArray;
 }
 
-export async function getExistingHashtags(hashtagName) {
-	const existingHashtagQuery = await connection.query(`
-		SELECT * FROM hashtags
-			WHERE name=$1`, [hashtagName]);
-	return existingHashtagQuery.rows[0];
-}
-
 export async function addOneInExistingHashtagAmount(hashtagId) {
 	return await connection.query(`
 		UPDATE hashtags
@@ -42,9 +35,19 @@ export async function createNewHashtag(hashtagName, creatorId) {
 			VALUES ($1, $2)`, [hashtagName, creatorId]);
 }
 
-export async function getHashtagData(hashtagName) {
+export async function getHashtagData(hashtagName, limit) {
 	const hashtagQuery = await connection.query(`
 		SELECT * FROM hashtags
 			WHERE "name" = $1`, [hashtagName]);
-	return hashtagQuery.rows[0];	
+	return hashtagQuery.rows[0];
+}
+
+export async function getLastsHashtags(limit) {
+	const lastHashtagsQuery = await connection.query(`
+    	SELECT * 
+    		FROM hashtags 
+    		ORDER BY amount DESC
+    		LIMIT $1`, [limit]);
+
+    return lastHashtagsQuery.rows;
 }
