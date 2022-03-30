@@ -1,9 +1,4 @@
-import { connection } from '../database.js';
-import urlMetadata from 'url-metadata';
-import { createPost, getUserPosts, createBondPostHashtag,
-    getLastPosts, getPost, getPostIdsUserLiked, deleteLikesOnPost, deleteHashtagsPosts,
-    deleteSinglePost, createLinkPreview, generateFeedPost,
-    insertLike, updateLikesAmount, removeLike, updatePostDescription } from '../repositories/postRepository.js';
+import { getPostIdsUserLiked, createLinkPreview, generateFeedPost } from '../repositories/postRepository.js';
 import { getLastsHashtags, getLastPostsWithHashtag } from '../repositories/hashtagRepository.js';
 
 export async function getTrendingHashtags(req, res) {

@@ -75,8 +75,6 @@ export async function deletePost(req, res) {
     const { postId } = req.params;
     const { user } = res.locals;
 
-    console.log(user.id);
-
     try {
         const result = getPost(postId, user.id);
         if (result.rowCount === 0)
@@ -87,6 +85,7 @@ export async function deletePost(req, res) {
         await deleteSinglePost(postId, user.id);
 
         res.sendStatus(200);
+
     } catch (error) {
         console.log(error);
         return res.sendStatus(500);
@@ -145,6 +144,7 @@ export async function putPost(req, res) {
         await updatePostDescription(description, postId);
 
         res.sendStatus(200);
+        
     } catch (error) {
         console.log(error);
         return res.sendStatus(500);

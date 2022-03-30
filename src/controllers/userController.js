@@ -1,5 +1,3 @@
-import bcrypt from 'bcrypt';
-import { connection } from '../database.js';
 import { getExistingUser, createUser } from '../repositories/userRepository.js';
 
 export async function postUser(req, res) {
