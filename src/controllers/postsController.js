@@ -1,74 +1,38 @@
-import { connection } from '../database.js';
-import urlMetadata from 'url-metadata';
-import { getPost, getUserLikes, generateLikedBy } from '../repositories/postRepository.js';
+import { findHashtagsInDescription, addOneInExistingHashtagAmount,
+    createNewHashtag, getHashtagDataByParameter } from '../repositories/hashtagRepository.js';
+import { createPost, getUserPosts, createBondPostHashtag,
+    getLastPosts, getPost, getPostIdsUserLiked, deleteLikesOnPost, deleteHashtagsPosts,
+    deleteSinglePost, createLinkPreview, generateFeedPost,
+    insertLike, updateLikesAmount, removeLike, updatePostDescription } from '../repositories/postRepository.js';
 
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
     const userId = res.locals.user.id;
 
-    function findHashtags(description) {
-        const descriptionArray = description.split(' ');
-        const hashtagsArray = [];
-
-        for (let i = 0; i < descriptionArray.length; i++) {
-            if (descriptionArray[i][0] === "#") {
-                if (hashtagsArray.includes(descriptionArray[i].replace('#', ''))) { continue };
-                hashtagsArray.push(descriptionArray[i].replace('#', ''));
-                continue;
-            }
-        }
-        return hashtagsArray;
-    }
-
-    const hashtagsArray = findHashtags(description);
-
+    const hashtagsArray = await findHashtagsInDescription(description);
     try {
         const hashtagsIdInPost = [];
-
         for (let i = 0; i < hashtagsArray.length; i++) {
-            const existingHashtag = await connection.query(`
-                SELECT * FROM hashtags
-                    WHERE name=$1`, [hashtagsArray[i]]);
+            const existingHashtag = await getHashtagDataByParameter("name", hashtagsArray[i]);
 
-            if (existingHashtag.rows[0]) {
-                hashtagsIdInPost.push(existingHashtag.rows[0].id)
-                await connection.query(`
-                    UPDATE hashtags
-                        SET amount = amount + 1
-                        WHERE id = $1`, [existingHashtag.rows[0].id]);
+            if (existingHashtag) {
+                hashtagsIdInPost.push(existingHashtag.id)
+                await addOneInExistingHashtagAmount(existingHashtag.id);
                 continue;
 
             } else {
-                await connection.query(`
-                    INSERT INTO hashtags (name, "userId")
-                        VALUES ($1, $2)`, [hashtagsArray[i], userId]);
-
-                const hashtagJustCreated = await connection.query(`
-                    SELECT * FROM hashtags
-                        WHERE "userId" = $1
-                            ORDER BY id DESC
-                            LIMIT 1`, [userId]);
-
-                hashtagsIdInPost.push(hashtagJustCreated.rows[0].id)
+                await createNewHashtag(hashtagsArray[i], userId);
+                const hashtagJustCreated = await getHashtagDataByParameter("name", hashtagsArray[i])
+                hashtagsIdInPost.push(hashtagJustCreated.id)
             }
         }
 
-        await connection.query(`
-            INSERT INTO posts (url, description, "userId")
-                VALUES ($1, $2, $3)`, [url, description, userId]);
+        await createPost(url, description, userId);
 
-        const justPostedPost = await connection.query(`
-            SELECT * FROM posts
-                WHERE "userId" = $1
-                    ORDER BY id DESC
-                    LIMIT 1`, [userId]);
-
-        const justPostedPostId = justPostedPost.rows[0].id;
+        const [ justPostedPost ] = await getUserPosts(userId, 1);
 
         for (let i = 0; i < hashtagsIdInPost.length; i++) {
-            await connection.query(`
-                INSERT INTO "hashtagsPosts" ("postId", "hashtagId")
-                    VALUES ($1, $2)`, [justPostedPostId, hashtagsIdInPost[i]]);
+            await createBondPostHashtag(justPostedPost.id, hashtagsIdInPost[i])
         }
 
         res.sendStatus(201);
@@ -86,73 +50,17 @@ export async function getTimeline(req, res) {
     const urlsDescriptions = [];
 
     try {
-        const postInfo = await connection.query(`
-            SELECT
-                p.id AS "postId",
-                p.url AS "rawUrl",
-                p.description,
-                p."likesAmount",
-                u.id AS "userId",
-                u.name AS "userName",
-                u."pictureUrl" AS "userPictureUrl"
-                    FROM posts p
-                    JOIN users u ON p."userId"=u.id
-                        ORDER BY p.id DESC
-                        LIMIT 20
-        `);
-
-        const userLikes = await getUserLikes(userId);
-        const postIdsUserLiked = [].concat.apply([], userLikes.rows);
-
-        for (let i = 0; i < postInfo.rowCount; i++) {
-            await urlMetadata(postInfo.rows[i].rawUrl)
-                .then(
-                    function (metadata) {
-                        urlsDescriptions.push({
-                            "url":
-                            {
-                                "link": metadata.url,
-                                "title": metadata.title,
-                                "description": metadata.description,
-                                "image": metadata.image
-                            }
-                        });
-                    },
-                    function (error) {
-                        console.log('url-metadata error');
-                        console.log(error);
-                        urlsDescriptions.push({
-                            "url":
-                            {
-                                "link": postInfo.rows[i].rawUrl,
-                                "title": postInfo.rows[i].rawUrl,
-                                "description": "URL with error or not found",
-                                "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
-                            }
-                    });
-                })
+        const rawTimeline = await getLastPosts(null, 20);
+        const postIdsUserLiked = await getPostIdsUserLiked(userId);
+        
+        for (let i = 0; i < rawTimeline.length; i++) {
+            const urlData = await createLinkPreview(rawTimeline[i].rawUrl);
+            urlsDescriptions.push(urlData);
         }
-
-        for (let i = 0; i < postInfo.rowCount; i++) {
-            const likedByUser = postIdsUserLiked.includes(postInfo.rows[i].postId) ? true : false;
-            const likedBy = await generateLikedBy(postInfo.rows[i].postId, userId, likedByUser, postInfo.rows[i].likesAmount);
-
-            timeline.push(
-                {
-                    id: postInfo.rows[i].postId,
-                    rawUrl: postInfo.rows[i].rawUrl,
-                    description: postInfo.rows[i].description,
-                    likesAmount: postInfo.rows[i].likesAmount,
-                    "likedByUser": likedByUser,
-                    "likedBy": likedBy,
-                    "user": {
-                        id: postInfo.rows[i].userId,
-                        name: postInfo.rows[i].userName,
-                        pictureUrl: postInfo.rows[i].userPictureUrl
-                    },
-                    ...urlsDescriptions[i]
-                }
-            )
+        
+        for (let i = 0; i < rawTimeline.length; i++) {
+            const post = await generateFeedPost(rawTimeline[i], postIdsUserLiked, urlsDescriptions[i]);
+            timeline.push(post);
         }
 
         res.send(timeline);
@@ -171,10 +79,13 @@ export async function deletePost(req, res) {
         const result = getPost(postId, user.id);
         if (result.rowCount === 0)
             return res.sendStatus(404);
-        await connection.query(`DELETE FROM "hashtagsPosts" WHERE "postId" = $1`, [parseInt(postId)]);
-        await connection.query(`DELETE FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+
+        await deleteLikesOnPost(postId);
+        await deleteHashtagsPosts(postId);
+        await deleteSinglePost(postId, user.id);
 
         res.sendStatus(200);
+
     } catch (error) {
         console.log(error);
         return res.sendStatus(500);
@@ -186,18 +97,12 @@ export async function likePost(req, res) {
     const { user } = res.locals;
 
     try {
-        const result = getPost(postId, user.id); /* middleware */
+        const result = getPost(postId, user.id);
         if (result.rowCount === 0)
             return res.sendStatus(404);
 
-        await connection.query(`
-            INSERT INTO likes ("postId", "userId")
-                VALUES ($1, $2)`, [parseInt(postId), user.id]);
-
-        await connection.query(`
-            UPDATE posts
-                SET "likesAmount" = "likesAmount" + 1
-                WHERE id = $1`, [parseInt(postId)]);
+        await insertLike(postId, user.id);
+        await updateLikesAmount(postId, 'like');
 
         res.sendStatus(200);
 
@@ -212,17 +117,13 @@ export async function unlikePost(req, res) {
     const { user } = res.locals;
 
     try {
-        const result = getPost(postId, user.id); /* middleware */
+        const result = getPost(postId, user.id);
         if (result.rowCount === 0)
             return res.sendStatus(404);
 
-        await connection.query(`
-            DELETE FROM likes  WHERE "postId" = $1 AND "userId" = $2`, [parseInt(postId), user.id]);
+        await removeLike(postId, user.id);
+        await updateLikesAmount(postId, 'unlike');
 
-        await connection.query(`
-            UPDATE posts
-                SET "likesAmount" = "likesAmount" -1
-                WHERE id = $1`, [parseInt(postId)]);
 
         res.sendStatus(200);
     } catch (error) {
@@ -236,16 +137,14 @@ export async function putPost(req, res) {
     const { description, userId } = req.body;
 
     try {
-        console.log("descrição: ", description)
-        console.log("userId: ", userId)
-        console.log("postId: ", postId)
-
-        const result = await connection.query(`SELECT * FROM posts WHERE id = $1 AND "userId" = $2`, [parseInt(postId), userId]);
+        const result = await getPost(postId, userId)
         if (result.rowCount === 0)
             return res.sendStatus(404);
-        await connection.query(`UPDATE posts SET description=$1 WHERE id=$2;`, [description, parseInt(postId)]);
+
+        await updatePostDescription(description, postId);
 
         res.sendStatus(200);
+        
     } catch (error) {
         console.log(error);
         return res.sendStatus(500);
@@ -257,63 +156,20 @@ export async function userPosts(req, res) {
     const urlsDescriptions = [];
     
     try {
-       const id = req.params.id;
+       const userId = req.params.id;
+       const rawTimeline = await getLastPosts(userId, 20);
 
-       const postInfo = await connection.query(`
-       SELECT
-           p.id AS "postId",
-           p.url AS "rawUrl",
-           p.description,
-           p."likesAmount",
-           u.id AS "userId",
-           u.name AS "userName",
-           u."pictureUrl" AS "userPictureUrl"
-               FROM posts p
-               JOIN users u ON p."userId"=u.id
-            WHERE p."userId" = $1
-   `, [id]);
+        for (let i = 0; i < rawTimeline.length; i++) {
+            const urlData = await createLinkPreview(rawTimeline[i].rawUrl);
+            urlsDescriptions.push(urlData);
+        }
 
-   for (let i = 0; i < postInfo.rowCount; i++) {
-       await urlMetadata(postInfo.rows[i].rawUrl)
-           .then(
-           function (metadata) {
-               urlsDescriptions.push({
-                   "url":
-                       {
-                           "link": metadata.url,
-                           "title": metadata.title,
-                           "description": metadata.description,
-                           "image": metadata.image
-                       }
-               });
-           },
-           function (error) {
-               console.log(error)
-               res.send('url-metadata error').status(503);
-           })  
-   }
+        for (let i = 0; i < rawTimeline.length; i++) {
+            const post = await generateFeedPost(rawTimeline[i], postIdsUserLiked, urlsDescriptions[i]);
+            timeline.push(post);
+        }
 
-   for (let i = 0; i < postInfo.rowCount; i++) {
-       timeline.push(
-           {
-               id: postInfo.rows[i].postId,
-               rawUrl: postInfo.rows[i].rawUrl,
-               description: postInfo.rows[i].description,
-               likesAmount: postInfo.rows[i].likesAmount,
-               "likedByUser": false,
-               "likedBy": "Em construção",
-               "user": {
-                   id: postInfo.rows[i].userId,
-                   name: postInfo.rows[i].userName,
-                   pictureUrl: postInfo.rows[i].userPictureUrl
-               },
-               ...urlsDescriptions[i]
-           }
-       )
-   }
-
-   res.send(timeline);
-
+        res.send(timeline);
     }
     catch (error) {
       console.log(error);
