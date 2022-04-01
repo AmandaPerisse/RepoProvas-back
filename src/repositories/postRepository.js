@@ -159,22 +159,34 @@ export async function getUsersLikedPost(postId, userId, firstsQty) {
 export async function generateLikedBy(postId, userId, likedByUser, likesAmount) {
 	let likedBy = '';
 	if (likesAmount === 0) { return likedBy }
-	if (likesAmount === 1 && likedByUser) { return likedBy = 'Você' }
 	
-	const usersLikedPost = await getUsersLikedPost(postId, userId, 2);
+	const usersLikedPost = await getUsersLikedPost(postId, userId, 3);
 	
-	if (likesAmount === 1 && !likedByUser) { return likedBy = usersLikedPost[0]}
+	if (likedByUser) {
+		if (likesAmount === 1)
+			likedBy = 'You';
 
-	if (likesAmount === 2) {
-		likedBy = likedByUser ? `Você e ${usersLikedPost[0]}` : `${usersLikedPost[0]} e ${usersLikedPost[1]}`
-		return likedBy;
-	}
+		if (likesAmount === 2)
+			likedBy = `You and ${usersLikedPost[0]}`
+
+		if (likesAmount === 3)
+			likedBy = `You, ${usersLikedPost[0]} and ${usersLikedPost[1]}`
+
+		if (likesAmount >= 4)
+			likedBy = `You, ${usersLikedPost[0]} and ${likesAmount - 2} others`
 	
-	if (likesAmount > 2) {
-		likedBy = likedByUser ?
-			`Você, ${usersLikedPost[0]} e ${likesAmount - 2 === 1 ? usersLikedPost[2] : `outras ${likesAmount - 2} pessoas`}` :
-			`${usersLikedPost[0]}, ${usersLikedPost[1]} e ${likesAmount - 2 === 1 ? usersLikedPost[2] : `outras ${likesAmount - 2} pessoas`}`
-		return likedBy;
+	} else {
+		if (likesAmount === 1)
+			likedBy = usersLikedPost[0];
+
+		if (likesAmount === 2)
+			likedBy = `${usersLikedPost[0]} and ${usersLikedPost[1]}`
+
+		if (likesAmount === 3)
+			likedBy = `${usersLikedPost[0]}, ${usersLikedPost[1]} and ${usersLikedPost[2]}`
+
+		if (likesAmount >= 4)
+			likedBy = `${usersLikedPost[0]}, ${usersLikedPost[1]} and ${likesAmount - 2} others`
 	}
 
 	return likedBy;
