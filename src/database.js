@@ -7,7 +7,7 @@ let connection;
 
 try {
   connection = new Pool({
-    connectionString: "postgres://postgres:123456@localhost:5432/linkr",
+    connectionString: "postgres://postgres:12345@localhost:5432/linkr",
     ssl: {
       rejectUnauthorized: false
     }
