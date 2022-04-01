@@ -20,4 +20,21 @@ export async function postComment(req, res) {
         return res.sendStatus(500);
     }
 }
-export async function getComments(req, res) { }
+export async function getComments(req, res) {
+    const { postId } = req.params;
+    const { user } = res.locals;
+
+    try {
+        const result = await connection.query(`
+                    SELECT * FROM comments
+                        WHERE "postId" = $1`, [postId]);
+        if (result.rowCount === 0)
+            return res.sendStatus(404);
+
+        res.status(200).send(result.rows);
+    } catch (error) {
+        console.log(error);
+        return res.sendStatus(500);
+    }
+
+}

@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { getComments, postComment } from "../controllers/commentsControlle.js";
-import { getUser, postUser } from "../controllers/userController.js";
 import { validateSchemaMiddleware } from "../middlewares/validateSchemaMiddleware.js";
 import { validateTokenMiddleware } from "../middlewares/validateTokenMiddleware.js";
 import { commentSchema } from "../schemas/commentSchems.js";
