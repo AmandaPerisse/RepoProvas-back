@@ -96,7 +96,7 @@ export async function createLinkPreview(url) {
 				});
 			},
 			function (error) {
-				console.log(`url-metadata error: postId ${rawTimeline.rows[i].postId} has error on url ${error.hostname}`);
+				console.log(`url-metadata error: post has error on url ${error.hostname}`);
 				urlData = ({
 					"url": {
 						"link": url,
