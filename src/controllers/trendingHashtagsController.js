@@ -1,9 +1,10 @@
 import { getPostIdsUserLiked, createLinkPreview, generateFeedPost } from '../repositories/postRepository.js';
 import { getLastsHashtags, getLastPostsWithHashtag } from '../repositories/hashtagRepository.js';
+import { connection } from '../database.js';
 
 export async function getTrendingHashtags(req, res) {
     try {
-        const trendingHashtags = await getLastsHashtags(10);   
+        const trendingHashtags = await getLastsHashtags(10);
         res.send(trendingHashtags);
 
     } catch (error) {
@@ -15,14 +16,14 @@ export async function getTrendingHashtags(req, res) {
 export async function getTrendingHashtagPosts(req, res) {
     const userId = res.locals.user.id;
     const { hashtag } = req.params;
-    
+
     const timeline = [];
     const urlsDescriptions = [];
-    
+
     try {
         const rawTimeline = await getLastPostsWithHashtag(null, hashtag, 20);
         const postIdsUserLiked = await getPostIdsUserLiked(userId);
-        
+
         for (let i = 0; i < rawTimeline.length; i++) {
             const urlData = await createLinkPreview(rawTimeline[i].rawUrl);
             urlsDescriptions.push(urlData);

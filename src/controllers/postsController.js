@@ -1,9 +1,15 @@
-import { findHashtagsInDescription, addOneInExistingHashtagAmount,
-    createNewHashtag, getHashtagDataByParameter } from '../repositories/hashtagRepository.js';
-import { createPost, getUserPosts, createBondPostHashtag,
+import urlMetadata from 'url-metadata';
+import { connection } from '../database.js';
+import {
+    findHashtagsInDescription, addOneInExistingHashtagAmount,
+    createNewHashtag, getHashtagDataByParameter
+} from '../repositories/hashtagRepository.js';
+import {
+    createPost, getUserPosts, createBondPostHashtag,
     getLastPosts, getPost, getPostIdsUserLiked, deleteLikesOnPost, deleteHashtagsPosts,
     deleteSinglePost, createLinkPreview, generateFeedPost,
-    insertLike, updateLikesAmount, removeLike, updatePostDescription } from '../repositories/postRepository.js';
+    insertLike, updateLikesAmount, removeLike, updatePostDescription
+} from '../repositories/postRepository.js';
 
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
@@ -29,7 +35,7 @@ export async function postOnFeed(req, res) {
 
         await createPost(url, description, userId);
 
-        const [ justPostedPost ] = await getUserPosts(userId, 1);
+        const [justPostedPost] = await getUserPosts(userId, 1);
 
         for (let i = 0; i < hashtagsIdInPost.length; i++) {
             await createBondPostHashtag(justPostedPost.id, hashtagsIdInPost[i])
@@ -50,19 +56,66 @@ export async function getTimeline(req, res) {
     const urlsDescriptions = [];
 
     try {
-        const rawTimeline = await getLastPosts(null, 20);
+
+        /*********************** */
+        let followers = await connection.query(`
+            SELECT * FROM followers 
+                WHERE "userId" = $1`, [userId]);
+        followers = followers.rows;
+        const postInfo = await getLastPosts(userId, 20);
+
+
+
+        // const userLikes = await getPostIdsUserLiked(userId);
+        // const postIdsUserLiked = [].concat.apply([], userLikes.rows);
         const postIdsUserLiked = await getPostIdsUserLiked(userId);
-        
-        for (let i = 0; i < rawTimeline.length; i++) {
-            const urlData = await createLinkPreview(rawTimeline[i].rawUrl);
-            urlsDescriptions.push(urlData);
+        // console.log(postInfo[1].rawUrl)
+
+        for (let i = 0; i < postInfo.length; i++) {
+            const metadata = await urlMetadata(postInfo[i].rawUrl, {})
+            // (
+            // function (metadata) {
+            console.log("metadata: ", metadata)
+            urlsDescriptions.push({
+                "url":
+                {
+                    "link": metadata.url,
+                    "title": metadata.title,
+                    "description": metadata.description,
+                    "image": metadata.image
+                }
+            })
+            // },
+            // function (error) {
+            //     console.log('url-metadata error');
+            //     console.log(error);
+            //     urlsDescriptions.push({
+            //         "url":
+            //         {
+            //             "link": postInfo.rows[i].rawUrl,
+            //             "title": postInfo.rows[i].rawUrl,
+            //             "description": "URL with error or not found",
+            //             "image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
+            //         }
+            //     });
+            // }
+            // )
         }
-        
-        for (let i = 0; i < rawTimeline.length; i++) {
-            const post = await generateFeedPost(rawTimeline[i], postIdsUserLiked, urlsDescriptions[i]);
+        // console.log("urlllll ", urlsDescriptions)
+        /**************************** */
+        // const rawTimeline = await getLastPosts(null, 20);
+        // const postIdsUserLiked = await getPostIdsUserLiked(userId);
+
+        // for (let i = 0; i < rawTimeline.length; i++) {
+        //     const urlData = await createLinkPreview(rawTimeline[i].rawUrl);
+        //     urlsDescriptions.push(urlData); 
+        // }
+        /******************** */
+        for (let i = 0; i < postInfo.length; i++) {
+            const post = await generateFeedPost(postInfo[i], postIdsUserLiked, urlsDescriptions[i]);
             timeline.push(post);
         }
-
+        // console.log(timeline);
         res.send(timeline);
 
     } catch (error) {
@@ -144,7 +197,7 @@ export async function putPost(req, res) {
         await updatePostDescription(description, postId);
 
         res.sendStatus(200);
-        
+
     } catch (error) {
         console.log(error);
         return res.sendStatus(500);
@@ -154,10 +207,11 @@ export async function putPost(req, res) {
 export async function userPosts(req, res) {
     const timeline = [];
     const urlsDescriptions = [];
-    
     try {
-       const userId = req.params.id;
-       const rawTimeline = await getLastPosts(userId, 20);
+
+        const userId = req.params.id;
+        const rawTimeline = await getLastPosts(userId, 20);
+        const postIdsUserLiked = await getPostIdsUserLiked(userId);
 
         for (let i = 0; i < rawTimeline.length; i++) {
             const urlData = await createLinkPreview(rawTimeline[i].rawUrl);
@@ -172,7 +226,7 @@ export async function userPosts(req, res) {
         res.send(timeline);
     }
     catch (error) {
-      console.log(error);
-      return res.sendStatus(500);
+        console.log(error);
+        return res.sendStatus(500);
     }
-  }
+}

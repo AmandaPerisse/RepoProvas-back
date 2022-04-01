@@ -64,3 +64,18 @@ export async function checkIfFollows (req, res) {
         return res.sendStatus(500);
     }   
 }
+
+export async function userFriends (req, res) {
+    const { id } = req.params;
+    try
+    {
+        const friends = await connection.query(`SELECT * FROM followers WHERE "userId"=$1`, [id]);
+
+        return res.send(friends.rows);
+    }
+    catch (error) 
+    {
+        console.log(error);
+        return res.sendStatus(500);
+    } 
+}

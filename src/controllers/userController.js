@@ -1,3 +1,4 @@
+import { connection } from '../database.js';
 import { getExistingUser, createUser } from '../repositories/userRepository.js';
 
 export async function postUser(req, res) {
@@ -23,14 +24,14 @@ export async function getUser(req, res) {
 
   try {
     res.send(user);
-    
+
   } catch (error) {
     console.log(error);
     return res.sendStatus(500);
   }
 }
 
-export async function getUserId (req, res) {
+export async function getUserId(req, res) {
   const { id } = req.params;
   try {
     const result = await connection.query(`SELECT * FROM users WHERE id=$1`, [id])
@@ -45,8 +46,8 @@ export async function getUserId (req, res) {
   }
 }
 
-export async function getAllUsers (req, res) {
-  try{
+export async function getAllUsers(req, res) {
+  try {
     let result = await connection.query(`SELECT * FROM users`);
     if (result.rowCount === 0) {
       return res.sendStatus(400);
@@ -60,7 +61,7 @@ export async function getAllUsers (req, res) {
 
 }
 
-export async function getUserName (req, res) {
+export async function getUserName(req, res) {
   const { name } = req.params
   try {
     let result = await connection.query(`SELECT * FROM users WHERE name = $1`, [name]);
