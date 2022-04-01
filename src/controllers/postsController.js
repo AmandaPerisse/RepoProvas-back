@@ -86,6 +86,8 @@ export async function getTimeline(req, res) {
     const urlsDescriptions = [];
 
     try {
+        let followers = await connection.query(`SELECT * FROM followers WHERE "userId" = $1`, [userId]);
+        followers = followers.rows;
         const postInfo = await connection.query(`
             SELECT
                 p.id AS "postId",
@@ -100,6 +102,8 @@ export async function getTimeline(req, res) {
                         ORDER BY p.id DESC
                         LIMIT 20
         `);
+
+        console.log(postInfo);
 
         const userLikes = await getUserLikes(userId);
         const postIdsUserLiked = [].concat.apply([], userLikes.rows);
