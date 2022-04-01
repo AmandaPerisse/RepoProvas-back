@@ -11,10 +11,10 @@ export async function unfollow (req, res) {
             return res.sendStatus(400)
         }
         await connection.query(`DELETE FROM followers WHERE "userId" = $1 AND "friendId" = $2`, [userId, followerId]);
+        return res.sendStatus(200);
     } 
     catch (error) 
     {
-        alert('Não foi possível realizar a operação...');
         console.log(error);
         return res.sendStatus(500);
     }
@@ -32,10 +32,10 @@ export async function follow (req, res) {
         INSERT INTO followers ("userId", "friendId")
         VALUES ($1, $2)
         `, [userId, followerId]);
+        return res.sendStatus(200);
     }
     catch (error) 
-    {
-        alert('Não foi possível realizar a operação...');
+    {  
         console.log(error);
         return res.sendStatus(500);
     }
@@ -50,9 +50,9 @@ export async function checkIfFollows (req, res) {
             return res.sendStatus(400)
         }
         const result = await connection.query(`
-        SELECT FROM followers
+        SELECT * FROM followers
         WHERE "userId" = $1 AND "friendId" = $2`, [userId, followerId]);
-        if (result.rowsCount === 0)
+        if (result.rows.length === 0)
         {
             return res.send(false);
         }
@@ -60,7 +60,6 @@ export async function checkIfFollows (req, res) {
     }
     catch (error) 
     {
-        alert('Não foi possível realizar a operação...');
         console.log(error);
         return res.sendStatus(500);
     }   

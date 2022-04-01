@@ -104,21 +104,26 @@ export async function createLinkPreview(url) {
 						"description": "BROKEN URL | URL with error or not found",
 						"image": "https://i3.wp.com/simpleandseasonal.com/wp-content/uploads/2018/02/Crockpot-Express-E6-Error-Code.png"
 					}
-			});
-		})
+				});
+			})
 
-		return urlData;
+	return urlData;
 }
 
 export async function generateFeedPost(rawPost, postIdsUserLiked, linkPreview) {
 	const isPostLikedByUser = postIdsUserLiked.includes(rawPost.postId);
 	const likedBy = await generateLikedBy(rawPost.postId, rawPost.userId, isPostLikedByUser, rawPost.likesAmount);
 
+	const comments = await connection.query(`
+            SELECT * FROM comments
+                 WHERE "postId" = $1`, [rawPost.postId]);
+	const commentsAmount = comments.rowCount;
 	const post = {
 		id: rawPost.postId,
 		rawUrl: rawPost.rawUrl,
 		description: rawPost.description,
 		likesAmount: rawPost.likesAmount,
+		commentsAmount: commentsAmount,
 		"likedByUser": isPostLikedByUser,
 		"likedBy": likedBy,
 		"user": {
