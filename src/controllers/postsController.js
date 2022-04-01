@@ -1,9 +1,15 @@
-import { findHashtagsInDescription, addOneInExistingHashtagAmount,
-    createNewHashtag, getHashtagDataByParameter } from '../repositories/hashtagRepository.js';
-import { createPost, getUserPosts, createBondPostHashtag,
+import urlMetadata from 'url-metadata';
+import { connection } from '../database.js';
+import {
+    findHashtagsInDescription, addOneInExistingHashtagAmount,
+    createNewHashtag, getHashtagDataByParameter
+} from '../repositories/hashtagRepository.js';
+import {
+    createPost, getUserPosts, createBondPostHashtag,
     getLastPosts, getPost, getPostIdsUserLiked, deleteLikesOnPost, deleteHashtagsPosts,
     deleteSinglePost, createLinkPreview, generateFeedPost,
-    insertLike, updateLikesAmount, removeLike, updatePostDescription } from '../repositories/postRepository.js';
+    insertLike, updateLikesAmount, removeLike, updatePostDescription
+} from '../repositories/postRepository.js';
 
 export async function postOnFeed(req, res) {
     const { url, description } = req.body;
@@ -29,7 +35,7 @@ export async function postOnFeed(req, res) {
 
         await createPost(url, description, userId);
 
-        const [ justPostedPost ] = await getUserPosts(userId, 1);
+        const [justPostedPost] = await getUserPosts(userId, 1);
 
         for (let i = 0; i < hashtagsIdInPost.length; i++) {
             await createBondPostHashtag(justPostedPost.id, hashtagsIdInPost[i])
@@ -50,14 +56,20 @@ export async function getTimeline(req, res) {
     const urlsDescriptions = [];
 
     try {
-        const rawTimeline = await getLastPosts(null, 20);
+        let followers = await connection.query(`
+            SELECT * FROM followers 
+                WHERE "userId" = $1`, [userId]);
+                
+        followers = followers.rows;
+
+        const rawTimeline = await getLastPosts(userId, 20);
         const postIdsUserLiked = await getPostIdsUserLiked(userId);
-        
+
         for (let i = 0; i < rawTimeline.length; i++) {
             const urlData = await createLinkPreview(rawTimeline[i].rawUrl);
             urlsDescriptions.push(urlData);
         }
-        
+
         for (let i = 0; i < rawTimeline.length; i++) {
             const post = await generateFeedPost(rawTimeline[i], postIdsUserLiked, urlsDescriptions[i]);
             timeline.push(post);
@@ -144,7 +156,7 @@ export async function putPost(req, res) {
         await updatePostDescription(description, postId);
 
         res.sendStatus(200);
-        
+
     } catch (error) {
         console.log(error);
         return res.sendStatus(500);
@@ -154,10 +166,11 @@ export async function putPost(req, res) {
 export async function userPosts(req, res) {
     const timeline = [];
     const urlsDescriptions = [];
-    
     try {
-       const userId = req.params.id;
-       const rawTimeline = await getLastPosts(userId, 20);
+
+        const userId = req.params.id;
+        const rawTimeline = await getLastPosts(userId, 20);
+        const postIdsUserLiked = await getPostIdsUserLiked(userId);
 
         for (let i = 0; i < rawTimeline.length; i++) {
             const urlData = await createLinkPreview(rawTimeline[i].rawUrl);
@@ -172,7 +185,7 @@ export async function userPosts(req, res) {
         res.send(timeline);
     }
     catch (error) {
-      console.log(error);
-      return res.sendStatus(500);
+        console.log(error);
+        return res.sendStatus(500);
     }
-  }
+}
