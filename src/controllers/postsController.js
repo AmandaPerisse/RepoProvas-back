@@ -50,7 +50,7 @@ export async function getTimeline(req, res) {
     const urlsDescriptions = [];
 
     try {
-        const rawTimeline = await getLastPosts(null, 20);
+        const rawTimeline = await getLastPosts(null, 10);
         const postIdsUserLiked = await getPostIdsUserLiked(userId);
         
         for (let i = 0; i < rawTimeline.length; i++) {
