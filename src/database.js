@@ -1,20 +1,9 @@
-import pg from 'pg';
+import pkg from "@prisma/client";
 import dotenv from 'dotenv';
+
 dotenv.config();
 
-const { Pool } = pg;
-let connection;
+const { PrismaClient } = pkg;
+const prisma = new PrismaClient();
 
-try {
-  connection = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-
-} catch (error) {
-  console.log(error)
-}
-
-export { connection };
+export { prisma };
