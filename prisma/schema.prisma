@@ -15,7 +15,7 @@ model categories {
 
 model disciplines {
   id                  Int                   @id @default(autoincrement())
-  name                String                @unique
+  name                String                
   termId              Int
   terms               terms                 @relation(fields: [termId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   teachersDisciplines teachersDisciplines[]
@@ -45,7 +45,7 @@ model teachersDisciplines {
 
 model terms {
   id          Int           @id @default(autoincrement())
-  number      Int           @unique
+  semester    String        @unique
   disciplines disciplines[]
 }
 
