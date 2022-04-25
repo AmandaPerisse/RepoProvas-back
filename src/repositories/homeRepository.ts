@@ -4,9 +4,10 @@ export async function getTestsDisciplines() {
 	const tests = await prisma.tests.findMany({
         select: {
             name: true,
+            pdfUrl: true,
             categories: {
                 select: {
-                    name: true
+                    name: true,
                 }
             },
             teachersDisciplines: {

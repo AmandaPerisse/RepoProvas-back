@@ -16,7 +16,8 @@ export async function testsDisciplines(req: Request, res: Response){
                 name: value.name,
                 category: value.categories.name,
                 teacher: value.teachersDisciplines.teachers.name,
-                semester: value.teachersDisciplines.disciplines.terms.semester
+                semester: value.teachersDisciplines.disciplines.terms.semester,
+                url: value.pdfUrl
             }))
             
         }
