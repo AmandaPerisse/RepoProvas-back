@@ -5,6 +5,7 @@ export async function getTestsDisciplines() {
         select: {
             name: true,
             pdfUrl: true,
+            views: true,
             categories: {
                 select: {
                     name: true,
@@ -32,4 +33,18 @@ export async function getTestsDisciplines() {
         },
     });
     return tests;
+}
+
+export async function updateTest(url: string) {
+	const test = await prisma.tests.update({
+        where: {
+            pdfUrl: url,
+        },
+        data:{
+            views: {
+                increment: 1,
+            }
+        }
+    })
+    return test;
 }

@@ -52,11 +52,12 @@ model terms {
 model tests {
   id                  Int                 @id @default(autoincrement())
   name                String
-  pdfUrl              String
+  pdfUrl              String              @unique
   categoryId          Int
   teacherDisciplineId Int
   categories          categories          @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   teachersDisciplines teachersDisciplines @relation(fields: [teacherDisciplineId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  views               Int                 @default(0)
 }
 
 model users {
