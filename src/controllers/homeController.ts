@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getTestsDisciplines } from '../repositories/homeRepository.js';
+import { getTestsDisciplines, updateTest } from '../repositories/homeRepository.js';
 
 export async function testsDisciplines(req: Request, res: Response){
     const tests = await getTestsDisciplines();
@@ -17,11 +17,23 @@ export async function testsDisciplines(req: Request, res: Response){
                 category: value.categories.name,
                 teacher: value.teachersDisciplines.teachers.name,
                 semester: value.teachersDisciplines.disciplines.terms.semester,
-                url: value.pdfUrl
+                url: value.pdfUrl,
+                views: value.views
             }))
             
         }
         testsArray.push(test);
     }     
     res.send(testsArray)
+}
+
+export async function setViews(req: Request, res: Response){
+    const { url } = req.body;
+    const test = await updateTest(url);
+    if(test){
+        res.send(test);
+    }
+    else{
+        res.sendStatus(404);
+    }
 }
