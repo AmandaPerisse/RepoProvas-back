@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
-import { getTestsDisciplines, updateTest } from '../repositories/homeRepository.js';
+import { getTestsDisciplines, updateTest, getCategories, 
+    getDisciplines, getTeachers, getTerms, getCategory, getDiscipline,
+    getTeacher, getTerm, getTeacherDiscipline, insertTest, validateUrl } from '../repositories/homeRepository.js';
 
 export async function testsDisciplines(req: Request, res: Response){
     const tests = await getTestsDisciplines();
@@ -24,7 +26,7 @@ export async function testsDisciplines(req: Request, res: Response){
         }
         testsArray.push(test);
     }     
-    res.send(testsArray)
+    res.send(testsArray);
 }
 
 export async function setViews(req: Request, res: Response){
@@ -35,5 +37,43 @@ export async function setViews(req: Request, res: Response){
     }
     else{
         res.sendStatus(404);
+    }
+}
+
+export async function getAllData(req: Request, res: Response){
+
+    const categories = await getCategories();
+    const disciplines = await getDisciplines();
+    const teachers = await getTeachers();
+    const terms = await getTerms();
+     
+    res.send({categories, disciplines, teachers, terms});
+}
+
+export async function testRegister(req: Request, res: Response){
+
+    const { name, pdf, category, discipline, teacher, term } = req.body;
+    const test = await validateUrl(pdf);
+
+    if(!test){
+        const categoryObject = await getCategory(category);
+
+        const termObject = await getTerm(term);
+
+        const disciplineObject = await getDiscipline(discipline, termObject);
+
+        const teacherObject = await getTeacher(teacher);
+
+        const categoryId = categoryObject.id;
+        const teacherDisciplineObject = await getTeacherDiscipline(teacherObject, disciplineObject);
+
+        const teacherDisciplineId = teacherDisciplineObject[0].id;
+
+        const newTest = await insertTest(name, pdf, categoryId, teacherDisciplineId);
+
+        res.send(newTest);
+    }
+    else{
+        res.sendStatus(409);
     }
 }
